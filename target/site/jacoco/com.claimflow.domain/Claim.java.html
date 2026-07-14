@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Claim.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ClaimFlow</a> &gt; <a href="index.source.html" class="el_package">com.claimflow.domain</a> &gt; <span class="el_source">Claim.java</span></div><h1>Claim.java</h1><pre class="source lang-java linenums">package com.claimflow.domain;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.*;
+import java.util.*;
+
+@Entity
+@Table(name = &quot;claims&quot;)
+public class Claim {
+    @Id private UUID id;
+    @Column(nullable = false, unique = true, length = 30) private String claimNumber;
+    @Column(nullable = false, length = 30) private String policyNumber;
+    @Column(nullable = false, length = 80) private String customerUsername;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private ClaimType type;
+    @Column(nullable = false) private LocalDate incidentDate;
+    @Column(nullable = false, precision = 15, scale = 2) private BigDecimal claimedAmount;
+    @Column(nullable = false, length = 1000) private String description;
+<span class="fc" id="L20">    @ElementCollection(fetch = FetchType.EAGER)</span>
+    @CollectionTable(name = &quot;claim_documents&quot;, joinColumns = @JoinColumn(name = &quot;claim_id&quot;))
+    @Column(name = &quot;document_type&quot;, length = 50) private Set&lt;String&gt; documentTypes = new LinkedHashSet&lt;&gt;();
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private VerificationStatus verificationStatus;
+    @Column(nullable = false) private int fraudScore;
+    @Column(precision = 15, scale = 2) private BigDecimal assessedAmount;
+    @Enumerated(EnumType.STRING) @Column(length = 30) private Decision decision;
+    @Column(length = 500) private String decisionReason;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private ClaimStatus status;
+    @Column(nullable = false) private int reopenCount;
+    @Column(nullable = false, updatable = false) private Instant createdAt;
+    @Column(nullable = false) private Instant updatedAt;
+    @Version private long version;
+
+<span class="fc" id="L34">    protected Claim() {}</span>
+<span class="fc" id="L35">    public Claim(UUID id, String number, String policyNumber, String user, ClaimType type, LocalDate incidentDate, BigDecimal amount, String description, Set&lt;String&gt; documents) {</span>
+<span class="fc" id="L36">        Objects.requireNonNull(id, &quot;id is required&quot;);</span>
+<span class="fc" id="L37">        Objects.requireNonNull(amount, &quot;claimed amount is required&quot;);</span>
+<span class="fc" id="L38">        this.id = id; this.claimNumber = number; this.policyNumber = policyNumber; this.customerUsername = user;</span>
+<span class="fc" id="L39">        this.type = type; this.incidentDate = incidentDate; this.claimedAmount = money(amount); this.description = description;</span>
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">        this.documentTypes.addAll(documents == null ? Set.of() : documents); this.verificationStatus = VerificationStatus.PENDING; this.status = ClaimStatus.SUBMITTED;</span>
+<span class="fc" id="L41">        this.createdAt = Instant.now(); this.updatedAt = createdAt;</span>
+<span class="fc" id="L42">    }</span>
+<span class="fc" id="L43">    @PreUpdate void touch() { updatedAt = Instant.now(); }</span>
+<span class="fc bfc" id="L44" title="All 4 branches covered.">    public void documentsVerified(boolean complete) { requireStatus(ClaimStatus.POLICY_VALIDATED); verificationStatus = complete ? VerificationStatus.VERIFIED : VerificationStatus.MISSING_DOCUMENTS; status = complete ? ClaimStatus.DOCUMENTS_VERIFIED : ClaimStatus.DOCUMENTS_PENDING; }</span>
+    public void policyValidated() {
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        if (status == ClaimStatus.SETTLED) throw new IllegalStateException(&quot;Settled claims cannot be reprocessed&quot;);</span>
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        if (!EnumSet.of(ClaimStatus.SUBMITTED, ClaimStatus.REOPENED, ClaimStatus.MANUAL_REVIEW, ClaimStatus.REJECTED).contains(status))</span>
+<span class="nc" id="L48">            throw new IllegalStateException(&quot;Claim cannot be policy validated from &quot; + status);</span>
+<span class="fc" id="L49">        status = ClaimStatus.POLICY_VALIDATED;</span>
+<span class="fc" id="L50">    }</span>
+    public void screened(int score) {
+<span class="pc bpc" id="L52" title="1 of 4 branches missed.">        if (status != ClaimStatus.DOCUMENTS_VERIFIED &amp;&amp; status != ClaimStatus.DOCUMENTS_PENDING)</span>
+<span class="nc" id="L53">            throw new IllegalStateException(&quot;Claim must have its documents checked before fraud screening&quot;);</span>
+<span class="pc bpc" id="L54" title="1 of 4 branches missed.">        if (score &lt; 0 || score &gt; 100) throw new IllegalArgumentException(&quot;Fraud score must be between 0 and 100&quot;);</span>
+<span class="fc" id="L55">        fraudScore = score; status = ClaimStatus.FRAUD_SCREENED;</span>
+<span class="fc" id="L56">    }</span>
+<span class="pc bpc" id="L57" title="2 of 6 branches missed.">    public void assessed(BigDecimal amount) { if (status != ClaimStatus.FRAUD_SCREENED &amp;&amp; status != ClaimStatus.SUBMITTED) throw new IllegalStateException(&quot;Claim cannot be assessed from &quot; + status); if (amount.signum() &lt; 0) throw new IllegalArgumentException(&quot;Assessed amount cannot be negative&quot;); assessedAmount = money(amount); status = ClaimStatus.ASSESSED; }</span>
+    public void decide(Decision value, String reason) {
+<span class="fc" id="L59">        Objects.requireNonNull(value, &quot;decision is required&quot;);</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (!EnumSet.of(ClaimStatus.ASSESSED, ClaimStatus.MANUAL_REVIEW, ClaimStatus.REJECTED, ClaimStatus.APPROVED).contains(status))</span>
+<span class="nc" id="L61">            throw new IllegalStateException(&quot;Claim cannot be decided from &quot; + status);</span>
+<span class="fc bfc" id="L62" title="All 3 branches covered.">        decision = value; decisionReason = reason; status = switch (value) { case AUTO_APPROVE -&gt; ClaimStatus.APPROVED; case MANUAL_REVIEW -&gt; ClaimStatus.MANUAL_REVIEW; case REJECT -&gt; ClaimStatus.REJECTED; };</span>
+<span class="fc" id="L63">    }</span>
+<span class="pc bpc" id="L64" title="1 of 4 branches missed.">    public void settled() { if (status != ClaimStatus.APPROVED || decision != Decision.AUTO_APPROVE) throw new IllegalStateException(&quot;Only approved claims can settle&quot;); status = ClaimStatus.SETTLED; }</span>
+<span class="pc bpc" id="L65" title="1 of 4 branches missed.">    public void reopen(String reason) { if (status != ClaimStatus.SETTLED &amp;&amp; status != ClaimStatus.REJECTED) throw new IllegalStateException(&quot;Only settled or rejected claims can be reopened&quot;); reopenCount++; status = ClaimStatus.REOPENED; decision = null; decisionReason = reason; verificationStatus = VerificationStatus.PENDING; }</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    private void requireStatus(ClaimStatus expected) { if (status != expected) throw new IllegalStateException(&quot;Expected claim status &quot; + expected + &quot; but was &quot; + status); }</span>
+<span class="fc" id="L67">    private static BigDecimal money(BigDecimal value) { return value.setScale(2, RoundingMode.HALF_UP); }</span>
+<span class="fc" id="L68">    public UUID getId() { return id; } public String getClaimNumber() { return claimNumber; } public String getPolicyNumber() { return policyNumber; }</span>
+<span class="fc" id="L69">    public String getCustomerUsername() { return customerUsername; } public ClaimType getType() { return type; } public LocalDate getIncidentDate() { return incidentDate; }</span>
+<span class="fc" id="L70">    public BigDecimal getClaimedAmount() { return claimedAmount; } public String getDescription() { return description; } public Set&lt;String&gt; getDocumentTypes() { return Collections.unmodifiableSet(documentTypes); }</span>
+<span class="fc" id="L71">    public VerificationStatus getVerificationStatus() { return verificationStatus; } public int getFraudScore() { return fraudScore; } public BigDecimal getAssessedAmount() { return assessedAmount; }</span>
+<span class="fc" id="L72">    public Decision getDecision() { return decision; } public String getDecisionReason() { return decisionReason; } public ClaimStatus getStatus() { return status; }</span>
+<span class="fc" id="L73">    public int getReopenCount() { return reopenCount; } public Instant getCreatedAt() { return createdAt; } public Instant getUpdatedAt() { return updatedAt; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

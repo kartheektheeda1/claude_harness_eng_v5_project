@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditEvent.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ClaimFlow</a> &gt; <a href="index.source.html" class="el_package">com.claimflow.domain</a> &gt; <span class="el_source">AuditEvent.java</span></div><h1>AuditEvent.java</h1><pre class="source lang-java linenums">package com.claimflow.domain;
+
+import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;audit_events&quot;)
+public class AuditEvent {
+    @Id private UUID id;
+    @Column(nullable = false) private UUID claimId;
+    @Column(nullable = false, length = 80) private String actor;
+    @Column(nullable = false, length = 80) private String action;
+    @Column(nullable = false, length = 1000) private String detail;
+    @Column(nullable = false, updatable = false) private Instant occurredAt;
+<span class="fc" id="L16">    protected AuditEvent() {}</span>
+<span class="fc" id="L17">    public AuditEvent(UUID claimId, String actor, String action, String detail) { this.id = UUID.randomUUID(); this.claimId = claimId; this.actor = actor; this.action = action; this.detail = detail; this.occurredAt = Instant.now(); }</span>
+<span class="nc" id="L18">    @PreUpdate void appendOnly() { throw new IllegalStateException(&quot;Audit history is append-only&quot;); }</span>
+<span class="fc" id="L19">    public UUID getId() { return id; } public UUID getClaimId() { return claimId; } public String getActor() { return actor; }</span>
+<span class="fc" id="L20">    public String getAction() { return action; } public String getDetail() { return detail; } public Instant getOccurredAt() { return occurredAt; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

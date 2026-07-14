@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ClaimFlow</a> &gt; <a href="index.source.html" class="el_package">com.claimflow.api</a> &gt; <span class="el_source">ClaimResponse.java</span></div><h1>ClaimResponse.java</h1><pre class="source lang-java linenums">package com.claimflow.api;
+
+import com.claimflow.domain.*;
+import java.math.BigDecimal;
+import java.time.*;
+import java.util.*;
+
+<span class="fc" id="L8">public record ClaimResponse(UUID id, String claimNumber, String policyNumber, String customerUsername, ClaimType type,</span>
+    LocalDate incidentDate, BigDecimal claimedAmount, String description, Set&lt;String&gt; documentTypes,
+    VerificationStatus verificationStatus, int fraudScore, BigDecimal assessedAmount, Decision decision,
+    String decisionReason, ClaimStatus status, int reopenCount, Instant createdAt, Instant updatedAt,
+    Settlement settlement, List&lt;AuditEvent&gt; auditTrail) {
+    public static ClaimResponse from(Claim c, Settlement settlement, List&lt;AuditEvent&gt; audit) {
+<span class="fc" id="L14">        return new ClaimResponse(c.getId(), c.getClaimNumber(), c.getPolicyNumber(), c.getCustomerUsername(), c.getType(),</span>
+<span class="fc" id="L15">            c.getIncidentDate(), c.getClaimedAmount(), c.getDescription(), c.getDocumentTypes(), c.getVerificationStatus(),</span>
+<span class="fc" id="L16">            c.getFraudScore(), c.getAssessedAmount(), c.getDecision(), c.getDecisionReason(), c.getStatus(), c.getReopenCount(),</span>
+<span class="fc" id="L17">            c.getCreatedAt(), c.getUpdatedAt(), settlement, audit);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

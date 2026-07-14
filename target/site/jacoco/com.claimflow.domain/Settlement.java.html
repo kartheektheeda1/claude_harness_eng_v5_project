@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Settlement.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ClaimFlow</a> &gt; <a href="index.source.html" class="el_package">com.claimflow.domain</a> &gt; <span class="el_source">Settlement.java</span></div><h1>Settlement.java</h1><pre class="source lang-java linenums">package com.claimflow.domain;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;settlements&quot;)
+public class Settlement {
+    @Id private UUID id;
+    @Column(nullable = false) private UUID claimId;
+    @Column(nullable = false, unique = true, length = 40) private String payoutReference;
+    @Column(nullable = false, precision = 15, scale = 2) private BigDecimal amount;
+    @Column(nullable = false, length = 30) private String paymentStatus;
+    @Column(nullable = false, updatable = false) private Instant createdAt;
+<span class="fc" id="L18">    protected Settlement() {}</span>
+<span class="fc" id="L19">    public Settlement(UUID id, UUID claimId, String reference, BigDecimal amount) { this.id = id; this.claimId = claimId; this.payoutReference = reference; this.amount = amount.setScale(2, RoundingMode.HALF_UP); this.paymentStatus = &quot;PAYMENT_STUB_CREATED&quot;; this.createdAt = Instant.now(); }</span>
+<span class="nc" id="L20">    @PreUpdate void immutable() { throw new IllegalStateException(&quot;Settlement records are immutable&quot;); }</span>
+<span class="fc" id="L21">    public UUID getId() { return id; } public UUID getClaimId() { return claimId; } public String getPayoutReference() { return payoutReference; }</span>
+<span class="fc" id="L22">    public BigDecimal getAmount() { return amount; } public String getPaymentStatus() { return paymentStatus; } public Instant getCreatedAt() { return createdAt; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Policy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ClaimFlow</a> &gt; <a href="index.source.html" class="el_package">com.claimflow.domain</a> &gt; <span class="el_source">Policy.java</span></div><h1>Policy.java</h1><pre class="source lang-java linenums">package com.claimflow.domain;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = &quot;policies&quot;)
+public class Policy {
+    @Id @Column(length = 30) private String policyNumber;
+    @Column(nullable = false, length = 80) private String customerUsername;
+    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private ClaimType type;
+    @Column(nullable = false, precision = 15, scale = 2) private BigDecimal sumInsured;
+    @Column(nullable = false, precision = 15, scale = 2) private BigDecimal deductible;
+    @Column(nullable = false, precision = 5, scale = 2) private BigDecimal coPayPercent;
+    @Column(nullable = false) private LocalDate validFrom;
+    @Column(nullable = false) private LocalDate validTo;
+    @Column(nullable = false) private boolean active;
+
+<span class="fc" id="L20">    public Policy() {}</span>
+<span class="nc" id="L21">    public String getPolicyNumber() { return policyNumber; }</span>
+<span class="fc" id="L22">    public String getCustomerUsername() { return customerUsername; }</span>
+<span class="fc" id="L23">    public ClaimType getType() { return type; }</span>
+<span class="fc" id="L24">    public BigDecimal getSumInsured() { return sumInsured; }</span>
+<span class="fc" id="L25">    public BigDecimal getDeductible() { return deductible; }</span>
+<span class="fc" id="L26">    public BigDecimal getCoPayPercent() { return coPayPercent; }</span>
+<span class="nc" id="L27">    public LocalDate getValidFrom() { return validFrom; }</span>
+<span class="nc" id="L28">    public LocalDate getValidTo() { return validTo; }</span>
+<span class="nc" id="L29">    public boolean isActive() { return active; }</span>
+<span class="pc bpc" id="L30" title="3 of 6 branches missed.">    public boolean covers(LocalDate date) { return active &amp;&amp; !date.isBefore(validFrom) &amp;&amp; !date.isAfter(validTo); }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

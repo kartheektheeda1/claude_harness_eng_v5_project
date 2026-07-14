@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ClaimFlow</a> &gt; <a href="index.source.html" class="el_package">com.claimflow.service</a> &gt; <span class="el_source">ClaimService.java</span></div><h1>ClaimService.java</h1><pre class="source lang-java linenums">package com.claimflow.service;
+
+import com.claimflow.api.*;
+import com.claimflow.domain.*;
+import com.claimflow.repository.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import java.time.LocalDate;
+import java.util.*;
+
+@Service
+public class ClaimService {
+    private final ClaimRepository claims; private final PolicyRepository policies; private final SettlementRepository settlements;
+    private final AuditEventRepository audits; private final ClaimRules rules;
+<span class="fc" id="L17">    public ClaimService(ClaimRepository claims, PolicyRepository policies, SettlementRepository settlements, AuditEventRepository audits, ClaimRules rules) {</span>
+<span class="fc" id="L18">        this.claims = claims; this.policies = policies; this.settlements = settlements; this.audits = audits; this.rules = rules;</span>
+<span class="fc" id="L19">    }</span>
+    @Transactional
+    public ClaimResponse submit(ClaimRequest request, String username) {
+<span class="fc" id="L22">        Policy policy = policy(request.policyNumber());</span>
+<span class="fc bfc" id="L23" title="All 2 branches covered.">        if (!policy.getCustomerUsername().equals(username)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Policy does not belong to this customer&quot;);</span>
+<span class="pc bpc" id="L24" title="1 of 2 branches missed.">        if (policy.getType() != request.type()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Claim type does not match policy&quot;);</span>
+<span class="pc bpc" id="L25" title="1 of 2 branches missed.">        if (!policy.covers(request.incidentDate())) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, &quot;Policy was not active on incident date&quot;);</span>
+<span class="fc" id="L26">        UUID id = UUID.randomUUID(); String number = &quot;CLM-&quot; + LocalDate.now().getYear() + &quot;-&quot; + id.toString().substring(0, 8).toUpperCase();</span>
+<span class="fc" id="L27">        Claim claim = new Claim(id, number, request.policyNumber(), username, request.type(), request.incidentDate(), request.claimedAmount(), request.description(), request.documentTypes());</span>
+<span class="fc" id="L28">        claims.save(claim); audit(claim, username, &quot;FNOL_SUBMITTED&quot;, &quot;Claim registered&quot;);</span>
+<span class="fc" id="L29">        return processInternal(claim, policy, &quot;system&quot;);</span>
+    }
+    @Transactional
+<span class="nc" id="L32">    public ClaimResponse process(UUID id, String actor) { Claim claim = claim(id); return processInternal(claim, policy(claim.getPolicyNumber()), actor); }</span>
+    private ClaimResponse processInternal(Claim claim, Policy policy, String actor) {
+<span class="fc" id="L34">        claim.policyValidated(); audit(claim, actor, &quot;POLICY_VALIDATED&quot;, &quot;Policy is active and covers incident date&quot;);</span>
+<span class="fc" id="L35">        Set&lt;String&gt; missing = new TreeSet&lt;&gt;(rules.requiredDocuments(claim.getType())); missing.removeAll(claim.getDocumentTypes());</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">        claim.documentsVerified(missing.isEmpty()); audit(claim, actor, &quot;DOCUMENTS_CHECKED&quot;, missing.isEmpty() ? &quot;All required document types present&quot; : &quot;Missing: &quot; + String.join(&quot;, &quot;, missing));</span>
+<span class="fc" id="L37">        int score = rules.fraudScore(claim, policy); claim.screened(score); audit(claim, actor, &quot;FRAUD_SCREENED&quot;, &quot;Rule score: &quot; + score);</span>
+<span class="fc" id="L38">        claim.assessed(rules.assess(claim, policy)); audit(claim, actor, &quot;CLAIM_ASSESSED&quot;, &quot;Payable amount: &quot; + claim.getAssessedAmount());</span>
+<span class="fc" id="L39">        Decision decision = rules.decide(claim); claim.decide(decision, reason(decision, missing, score)); audit(claim, actor, &quot;DECISION_RECORDED&quot;, decision.name());</span>
+<span class="fc" id="L40">        claims.save(claim);</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if (decision == Decision.AUTO_APPROVE) createSettlement(claim, actor);</span>
+<span class="fc" id="L42">        return response(claim);</span>
+    }
+<span class="fc bfc" id="L44" title="All 3 branches covered.">    private String reason(Decision decision, Set&lt;String&gt; missing, int score) { return switch (decision) {</span>
+<span class="fc" id="L45">        case AUTO_APPROVE -&gt; &quot;Documents complete and fraud score within automatic approval threshold&quot;;</span>
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">        case MANUAL_REVIEW -&gt; !missing.isEmpty() ? &quot;Required documents missing: &quot; + String.join(&quot;, &quot;, missing) : &quot;Fraud score requires adjuster review: &quot; + score;</span>
+<span class="fc" id="L47">        case REJECT -&gt; &quot;Risk or payable amount failed automated decision rules&quot;;</span>
+    }; }
+    @Transactional
+    public ClaimResponse override(UUID id, OverrideRequest request, String actor) {
+<span class="nc" id="L51">        Claim claim = claim(id); Decision previous = claim.getDecision(); claim.decide(request.decision(), &quot;Administrative override: &quot; + request.reason());</span>
+<span class="nc" id="L52">        audit(claim, actor, &quot;DECISION_OVERRIDDEN&quot;, String.valueOf(previous) + &quot; -&gt; &quot; + request.decision() + &quot;: &quot; + request.reason()); claims.save(claim);</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (request.decision() == Decision.AUTO_APPROVE) createSettlement(claim, actor);</span>
+<span class="nc" id="L54">        return response(claim);</span>
+    }
+    @Transactional
+    public ClaimResponse reopen(UUID id, ReopenRequest request, String actor, boolean admin) {
+<span class="fc" id="L58">        Claim claim = claim(id); authorize(claim, actor, admin); claim.reopen(request.reason()); audit(claim, actor, &quot;CLAIM_REOPENED&quot;, request.reason()); claims.save(claim); return response(claim);</span>
+    }
+    private void createSettlement(Claim claim, String actor) {
+<span class="fc" id="L61">        Optional&lt;Settlement&gt; existing = settlements.findByClaimId(claim.getId());</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        if (existing.isPresent()) {</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">            if (existing.get().getAmount().compareTo(claim.getAssessedAmount()) != 0)</span>
+<span class="nc" id="L64">                throw new IllegalStateException(&quot;An immutable settlement already exists with a different amount&quot;);</span>
+<span class="nc" id="L65">            claim.settled();</span>
+<span class="nc" id="L66">            return;</span>
+        }
+<span class="fc" id="L68">        Settlement settlement = new Settlement(UUID.randomUUID(), claim.getId(), &quot;PAY-&quot; + UUID.randomUUID().toString().substring(0, 12).toUpperCase(), claim.getAssessedAmount());</span>
+<span class="fc" id="L69">        settlements.save(settlement); claim.settled(); audit(claim, actor, &quot;SETTLEMENT_CREATED&quot;, settlement.getPayoutReference());</span>
+<span class="fc" id="L70">    }</span>
+<span class="nc" id="L71">    @Transactional(readOnly = true) public ClaimResponse get(UUID id, String user, boolean admin) { Claim c = claim(id); authorize(c, user, admin); return response(c); }</span>
+<span class="nc" id="L72">    @Transactional(readOnly = true) public List&lt;ClaimResponse&gt; mine(String user) { return claims.findByCustomerUsernameOrderByCreatedAtDesc(user).stream().map(this::response).toList(); }</span>
+<span class="nc" id="L73">    @Transactional(readOnly = true) public List&lt;ClaimResponse&gt; all() { return claims.findAll().stream().map(this::response).toList(); }</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">    @Transactional(readOnly = true) public DashboardResponse dashboard() { Map&lt;String,Long&gt; map = new LinkedHashMap&lt;&gt;(); for (ClaimStatus s : ClaimStatus.values()) map.put(s.name(), claims.countByStatus(s)); return new DashboardResponse(claims.count(), map, claims.countByStatus(ClaimStatus.MANUAL_REVIEW), claims.countByStatus(ClaimStatus.SETTLED)); }</span>
+<span class="fc" id="L75">    private ClaimResponse response(Claim c) { return ClaimResponse.from(c, settlements.findByClaimId(c.getId()).orElse(null), audits.findByClaimIdOrderByOccurredAtAsc(c.getId())); }</span>
+<span class="pc" id="L76">    private Claim claim(UUID id) { return claims.findById(id).orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Claim not found&quot;)); }</span>
+<span class="pc" id="L77">    private Policy policy(String id) { return policies.findById(id).orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Policy not found&quot;)); }</span>
+<span class="pc bpc" id="L78" title="1 of 4 branches missed.">    private void authorize(Claim c, String user, boolean admin) { if (!admin &amp;&amp; !c.getCustomerUsername().equals(user)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not your claim&quot;); }</span>
+<span class="fc" id="L79">    private void audit(Claim c, String actor, String action, String detail) { audits.save(new AuditEvent(c.getId(), actor, action, detail)); }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
