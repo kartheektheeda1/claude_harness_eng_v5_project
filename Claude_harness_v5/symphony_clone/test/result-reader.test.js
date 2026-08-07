@@ -19,7 +19,7 @@ test('readResult parses the JSON file at the group-scoped result path', async ()
 
   const { result, path: resultPath } = await readResult(workspace, 'A');
   assert.equal(result.status, 'human_review');
-  assert.equal(resultPath.endsWith('tracker-runs/A/result.json'), true);
+  assert.equal(resultPath, path.join(dir, 'result.json'));
 });
 
 test('readResult rejects a result file with no status field', async () => {

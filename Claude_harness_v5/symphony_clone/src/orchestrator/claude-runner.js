@@ -1,6 +1,8 @@
 'use strict';
 
 const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 
 class ClaudeRunner {
   constructor(config) {
@@ -19,16 +21,43 @@ class ClaudeRunner {
 // only stop the shell, not the claude process it spawned underneath, leaving it
 // orphaned mid-run (and still billing).
 function spawnDetachedShell(fullCommand, cwd) {
-  const shell = process.env.SHELL || '/bin/bash';
+  const shell = resolvePosixShell();
   return spawn(shell, ['-lc', fullCommand], {
     cwd,
     env: process.env,
     stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true
+    detached: true,
+    windowsHide: true
   });
 }
 
+function resolvePosixShell() {
+  const configured = process.env.CLAUDE_SHELL || process.env.SHELL;
+  if (configured) return configured;
+
+  if (process.platform === 'win32') {
+    const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+    const gitBashCandidates = [
+      path.join(programFiles, 'Git', 'bin', 'bash.exe'),
+      path.join(programFiles, 'Git', 'usr', 'bin', 'bash.exe')
+    ];
+    const gitBash = gitBashCandidates.find((candidate) => fs.existsSync(candidate));
+    if (gitBash) return gitBash;
+    return 'bash.exe';
+  }
+
+  return '/bin/bash';
+}
+
 function killProcessGroup(child) {
+  if (process.platform === 'win32') {
+    spawn('taskkill.exe', ['/pid', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+      windowsHide: true
+    }).unref();
+    return;
+  }
+
   try {
     process.kill(-child.pid, 'SIGTERM'); // negative pid = whole process group
   } catch (_) {
@@ -87,4 +116,4 @@ function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
-module.exports = { ClaudeRunner, runShellCommand: runInShell, shellQuote };
+module.exports = { ClaudeRunner, runShellCommand: runInShell, shellQuote, resolvePosixShell };
