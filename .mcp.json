@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.79",
+        "--headless",
+        "--browser",
+        "chromium"
+      ]
+    },
+    "claimflow_context": {
+      "command": "node",
+      "args": [
+        ".claude/mcp/claimflow-context-server.js"
+      ],
+      "env": {
+        "CLAIMFLOW_PROJECT_DIR": "${workspaceFolder}"
+      }
+    }
+  }
+}

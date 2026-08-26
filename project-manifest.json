@@ -1,0 +1,53 @@
+{
+  "name": "ClaimFlow",
+  "description": "A specification-driven insurance claim intake, adjudication, decision, settlement, and audit demonstration.",
+  "topology": "full-stack-web-application",
+  "stack": {
+    "backend": { "language": "Java 21", "framework": "Spring Boot 3.3" },
+    "frontend": { "language": "JavaScript", "framework": "React 18 and Vite 5" },
+    "database": { "production": "MySQL 8.4", "test": "H2 in MySQL compatibility mode" }
+  },
+  "specification": {
+    "application": "specs/app_spec.md",
+    "featuresMarkdown": [
+      "specs/intake_spec.md",
+      "specs/document-verification_spec.md",
+      "specs/fraud-screening_spec.md",
+      "specs/assessment_spec.md",
+      "specs/settlement_spec.md",
+      "specs/reopen_spec.md"
+    ],
+    "features": "specs/features.json",
+    "stories": "specs/stories/stories.json",
+    "traces": "specs/stories/story-traces.json",
+    "verificationMatrix": "specs/test_artefacts/verification-matrix.json",
+    "sprintContracts": "sprint-contracts"
+  },
+  "verification": {
+    "backend": ".\\mvnw.cmd --batch-mode --no-transfer-progress verify",
+    "frontendUnit": "npm --prefix frontend test",
+    "frontendBuild": "npm --prefix frontend run build",
+    "browser": "npm --prefix frontend run e2e",
+    "harness": "npm run check:quick",
+    "all": "npm run check"
+  },
+  "quality": {
+    "minimumLineCoverage": 0.8,
+    "minimumBranchCoverage": 0.6,
+    "testData": "synthetic-only",
+    "workflowTransitions": "domain-methods-only",
+    "moneyType": "BigDecimal with explicit scale and rounding"
+  },
+  "runtime": {
+    "api": "http://localhost:8080",
+    "web": "http://localhost:5173",
+    "health": "http://localhost:8080/actuator/health"
+  },
+  "harness": {
+    "foundation": "Claude Harness Engine V5",
+    "lock": "harness-lock.json",
+    "plugin": "plugin.json",
+    "mcp": ".mcp.json",
+    "evaluatorReports": "specs/reviews"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "description": "Optional conservative permissions for autonomous ClaimFlow runs; copy selected entries into settings.local.json only after review.",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit(src/**)",
+      "Edit(frontend/src/**)",
+      "Write(src/test/**)",
+      "Write(frontend/**/*.test.*)",
+      "Bash(node .claude/scripts/*)",
+      "Bash(./mvnw test*)",
+      "Bash(.\\mvnw.cmd test*)",
+      "Bash(npm --prefix frontend test*)"
+    ],
+    "deny": [
+      "Read(./.env*)",
+      "Bash(git push*)",
+      "Bash(git reset*)",
+      "Bash(git clean*)"
+    ]
+  }
+}

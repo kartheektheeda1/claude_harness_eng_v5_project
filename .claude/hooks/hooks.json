@@ -1,0 +1,28 @@
+{
+  "description": "ClaimFlow V5 foundation, TDD, privacy, money, and immutable-evidence gates.",
+  "hooks": {
+    "SessionStart": [{"hooks": [
+      {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/check-git-hooks.js\"", "timeout": 5000},
+      {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-check.js\"", "timeout": 15000}
+    ]}],
+    "PreToolUse": [
+      {"matcher": "Write|Edit|MultiEdit", "hooks": [
+        {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-write-gate.js\"", "timeout": 10000},
+        {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-write-tdd.js\"", "timeout": 10000},
+        {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/payout-invariant-check.js\"", "timeout": 5000},
+        {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pii-redaction-check.js\"", "timeout": 5000},
+        {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/claim-immutability-check.js\"", "timeout": 5000}
+      ]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-bash-gate.js\"", "timeout": 10000}]}
+    ],
+    "PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [
+      {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/verify-on-save.js\"", "timeout": 30000},
+      {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/record-change.js\"", "timeout": 10000}
+    ]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/artifact-guard.js\"", "timeout": 5000}]}],
+    "Stop": [{"hooks": [
+      {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/review-on-stop.js\"", "timeout": 5000},
+      {"type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/completion-gate.js\"", "timeout": 30000}
+    ]}]
+  }
+}

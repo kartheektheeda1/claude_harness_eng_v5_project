@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "traces": [
+    { "ac_id": "E1-S1-AC1", "implementation": ["src/main/java/com/claimflow/service/ClaimService.java", "src/main/java/com/claimflow/domain/Claim.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E1-S1-AC2", "implementation": ["src/main/java/com/claimflow/service/ClaimRules.java", "src/main/java/com/claimflow/domain/Claim.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E1-S1-AC3", "implementation": ["src/main/java/com/claimflow/api/ClaimRequest.java", "src/main/java/com/claimflow/api/ApiExceptionHandler.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E1-S1-AC4", "implementation": ["src/main/java/com/claimflow/service/ClaimService.java", "src/main/java/com/claimflow/domain/Policy.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E1-S2-AC1", "implementation": ["src/main/java/com/claimflow/config/SecurityConfig.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E1-S2-AC2", "implementation": ["src/main/java/com/claimflow/config/SecurityConfig.java", "src/main/java/com/claimflow/api/AdminController.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E1-S2-AC3", "implementation": ["src/main/java/com/claimflow/service/ClaimService.java", "src/main/java/com/claimflow/api/ClaimController.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E1-S2-AC4", "implementation": ["src/main/java/com/claimflow/api/AdminController.java", "src/main/java/com/claimflow/service/ClaimService.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E2-S1-AC1", "implementation": ["src/main/java/com/claimflow/service/ClaimRules.java"], "verification": ["src/test/java/com/claimflow/service/ClaimRulesTest.java"] },
+    { "ac_id": "E2-S1-AC2", "implementation": ["src/main/java/com/claimflow/service/ClaimRules.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E2-S1-AC3", "implementation": ["src/main/java/com/claimflow/service/ClaimRules.java"], "verification": ["src/test/java/com/claimflow/service/ClaimRulesTest.java"] },
+    { "ac_id": "E2-S1-AC4", "implementation": ["src/main/java/com/claimflow/service/ClaimRules.java"], "verification": ["src/test/java/com/claimflow/service/ClaimRulesTest.java"] },
+    { "ac_id": "E2-S2-AC1", "implementation": ["src/main/java/com/claimflow/domain/Settlement.java", "src/main/java/com/claimflow/service/ClaimService.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E2-S2-AC2", "implementation": ["src/main/java/com/claimflow/domain/Claim.java", "src/main/java/com/claimflow/service/ClaimService.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E2-S2-AC3", "implementation": ["src/main/java/com/claimflow/service/ClaimService.java", "src/main/java/com/claimflow/domain/Settlement.java"], "verification": ["src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java"] },
+    { "ac_id": "E2-S2-AC4", "implementation": ["src/main/resources/db/migration/V1__initial_schema.sql", "src/main/resources/db/migration/V2__seed_synthetic_policies.sql"], "verification": ["src/test/java/com/claimflow/architecture/FlywayMigrationTest.java"] },
+    { "ac_id": "E3-S1-AC1", "implementation": ["frontend/src/pages/CustomerPage.jsx", "frontend/src/api.js"], "verification": ["frontend/e2e/portal.spec.js"] },
+    { "ac_id": "E3-S1-AC2", "implementation": ["frontend/src/components/NewClaim.jsx", "frontend/src/components/ClaimDetail.jsx"], "verification": ["frontend/e2e/portal.spec.js"] },
+    { "ac_id": "E3-S1-AC3", "implementation": ["frontend/src/pages/CustomerPage.jsx"], "verification": ["frontend/e2e/portal.spec.js"] },
+    { "ac_id": "E3-S1-AC4", "implementation": ["frontend/src/components/ClaimDetail.jsx", "frontend/src/pages/AdminPage.jsx"], "verification": ["frontend/e2e/portal.spec.js"] },
+    { "ac_id": "E3-S1-AC5", "implementation": ["frontend/src/components/Modal.jsx", "frontend/src/styles.css"], "verification": ["frontend/e2e/portal.spec.js"] },
+    { "ac_id": "E3-S1-AC6", "implementation": ["frontend/src/pages/CustomerPage.jsx", "frontend/src/components/ClaimDetail.jsx"], "verification": ["frontend/e2e/portal.spec.js"] }
+  ]
+}

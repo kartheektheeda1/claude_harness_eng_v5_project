@@ -16,8 +16,11 @@ public class Settlement {
     @Column(nullable = false, length = 30) private String paymentStatus;
     @Column(nullable = false, updatable = false) private Instant createdAt;
     protected Settlement() {}
-    public Settlement(UUID id, UUID claimId, String reference, BigDecimal amount) { this.id = id; this.claimId = claimId; this.payoutReference = reference; this.amount = amount.setScale(2, RoundingMode.HALF_UP); this.paymentStatus = "PAYMENT_STUB_CREATED"; this.createdAt = Instant.now(); }
-    @PreUpdate void immutable() { throw new IllegalStateException("Settlement records are immutable"); }
+    public Settlement(UUID id, UUID claimId, String reference, BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) throw new IllegalArgumentException("Settlement amount must be positive");
+        this.id = id; this.claimId = claimId; this.payoutReference = reference; this.amount = amount.setScale(2, RoundingMode.HALF_UP); this.paymentStatus = "PAYMENT_STUB_CREATED"; this.createdAt = Instant.now();
+    }
+    @PreUpdate @PreRemove void immutable() { throw new IllegalStateException("Settlement records are immutable"); }
     public UUID getId() { return id; } public UUID getClaimId() { return claimId; } public String getPayoutReference() { return payoutReference; }
     public BigDecimal getAmount() { return amount; } public String getPaymentStatus() { return paymentStatus; } public Instant getCreatedAt() { return createdAt; }
 }

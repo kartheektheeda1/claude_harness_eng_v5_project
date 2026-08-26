@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "group": "B",
+  "objective": "Financial rules, settlement, reopening, audit, and schema integrity",
+  "stories": ["E2-S1", "E2-S2"],
+  "acceptanceCriteria": [
+    "E2-S1-AC1", "E2-S1-AC2", "E2-S1-AC3", "E2-S1-AC4",
+    "E2-S2-AC1", "E2-S2-AC2", "E2-S2-AC3", "E2-S2-AC4"
+  ],
+  "requiredChecks": [
+    ".\\mvnw.cmd --batch-mode --no-transfer-progress verify",
+    "node .claude/scripts/validate-specs.js"
+  ],
+  "invariants": ["BigDecimal scale and rounding", "immutable settlements", "append-only audit", "Flyway-only persisted schema changes"]
+}

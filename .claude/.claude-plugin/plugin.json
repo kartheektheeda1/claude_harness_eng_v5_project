@@ -1,0 +1,16 @@
+{
+  "name": "claimflow-harness",
+  "version": "1.0.0",
+  "description": "Project-specific spec, TDD, evaluation, hook, and MCP workflow for ClaimFlow.",
+  "author": {
+    "name": "ClaimFlow"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claimflow",
+    "tdd",
+    "specification",
+    "evaluation"
+  ],
+  "mcpServers": "./.mcp.json"
+}

@@ -1,0 +1,14 @@
+{
+  "name": "claimflow-claims-operations",
+  "version": "1.0.0",
+  "description": "ClaimFlow project substrate layered on the locked Claude Harness Engine V5 foundation.",
+  "harness": {
+    "lock": "harness-lock.json",
+    "agents": ".claude/agents",
+    "skills": ".claude/skills",
+    "commands": ".claude/commands",
+    "hooks": ".claude/hooks"
+  },
+  "mcpServers": ".mcp.json",
+  "specification": "specs/app_spec.md"
+}

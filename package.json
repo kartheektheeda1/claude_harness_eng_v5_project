@@ -1,0 +1,26 @@
+{
+  "name": "claimflow-engineering-workspace",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Unified verification entry point for the ClaimFlow application and its Claude engineering harness.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.246"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "check:quick": "node scripts/check.mjs --quick",
+    "check:all": "node scripts/check.mjs --e2e",
+    "validate:harness": "node .claude/scripts/validate-harness.js && node .claude/scripts/validate-specs.js",
+    "test:harness": "npm --prefix .claude test",
+    "test:orchestrator": "npm --prefix Claude_harness_v5/symphony_clone test",
+    "test:frontend": "npm --prefix frontend test",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:e2e": "npm --prefix frontend run e2e",
+    "agent:claimflow": "node scripts/run-claimflow-agent.mjs",
+    "dev": "node scripts/run-demo.mjs"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "contractVersion": 1,
+  "sprint": "01-intake-and-documents",
+  "source": "specs/app_spec.md",
+  "acceptanceCriteria": ["AC-01", "AC-02", "AC-03"],
+  "agents": ["claim-intake-agent", "document-verification-agent", "test-engineer", "claimflow-evaluator"],
+  "requiredChecks": ["backend-unit", "backend-integration", "architecture", "harness-contract"],
+  "completion": {
+    "implementation": "verified",
+    "evaluation": "passed:specs/reviews/evaluator-report.json",
+    "pullRequest": "pending"
+  }
+}

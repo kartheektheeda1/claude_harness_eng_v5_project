@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "command": ".\\mvnw.cmd --batch-mode --no-transfer-progress verify",
+  "tests": [
+    { "path": "src/test/java/com/claimflow/domain/ClaimStateTest.java", "covers": ["workflow ordering", "settlement precondition", "reopen precondition"] },
+    { "path": "src/test/java/com/claimflow/service/ClaimRulesTest.java", "covers": ["E2-S1-AC1", "E2-S1-AC3", "E2-S1-AC4"] },
+    { "path": "src/test/java/com/claimflow/architecture/ArchitectureRulesTest.java", "covers": ["layer dependencies", "domain isolation", "repository shape"] }
+  ]
+}

@@ -1,8 +1,18 @@
-# ClaimFlow agent guidance
+# ClaimFlow Agent Documentation Map
 
-- Use Java 21 and keep currency operations in `BigDecimal` with explicit scale and rounding.
-- Preserve append-only audit history and immutable settlement records.
-- Route workflow state changes through domain methods on `Claim`.
-- Keep customer resource access owner-scoped; admin-only operations belong under `/api/admin`.
-- Use only synthetic data in tests, migrations, screenshots, and examples.
-- Add a Flyway migration for every persisted schema change; never edit an applied migration.
+`AGENTS.md` is a table of contents. Binding repository guidance lives in the closest applicable `CLAUDE.md`.
+
+| Area | Guidance / source of truth |
+|---|---|
+| Repository rules and workflow | `CLAUDE.md` |
+| Backend generation | `src/CLAUDE.md` |
+| Backend test generation | `src/test/CLAUDE.md` |
+| Frontend generation | `frontend/CLAUDE.md` |
+| Symphony orchestrator | `Claude_harness_v5/symphony_clone/CLAUDE.md` |
+| Product specification | `specs/app_spec.md` |
+| Feature specifications | `specs/*_spec.md` |
+| Business context | `docs/business-case.md` |
+| Architecture | `docs/architecture.md` |
+| TDD discipline | `docs/tdd.md` |
+| Acceptance evidence | `specs/test_artefacts/verification-matrix.json` |
+| Harness provenance | `harness-lock.json` |

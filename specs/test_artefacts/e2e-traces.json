@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "command": "npm --prefix frontend run e2e",
+  "runtime": "Node 20 or Node 22 with Playwright Chromium",
+  "path": "frontend/e2e/portal.spec.js",
+  "covers": ["E3-S1-AC1", "E3-S1-AC2", "E3-S1-AC3", "E3-S1-AC4", "E3-S1-AC5", "E3-S1-AC6"]
+}

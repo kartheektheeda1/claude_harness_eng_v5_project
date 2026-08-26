@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "group": "A",
+  "objective": "Claim intake and access-control baseline",
+  "stories": ["E1-S1", "E1-S2"],
+  "acceptanceCriteria": [
+    "E1-S1-AC1", "E1-S1-AC2", "E1-S1-AC3", "E1-S1-AC4",
+    "E1-S2-AC1", "E1-S2-AC2", "E1-S2-AC3", "E1-S2-AC4"
+  ],
+  "requiredChecks": [
+    ".\\mvnw.cmd --batch-mode --no-transfer-progress verify",
+    "node .claude/scripts/validate-specs.js"
+  ],
+  "invariants": ["owner-scoped customer access", "admin-only /api/admin", "domain-method transitions", "synthetic data only"]
+}

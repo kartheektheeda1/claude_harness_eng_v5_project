@@ -1,5 +1,7 @@
 package com.claimflow.api;
 
+import com.claimflow.domain.InvalidClaimStateException;
+import com.claimflow.domain.PolicyNotActiveException;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,8 @@ public class ApiExceptionHandler {
     }
     @ExceptionHandler(ResponseStatusException.class)
     ResponseEntity<Map<String,Object>> status(ResponseStatusException ex) { return ResponseEntity.status(ex.getStatusCode()).body(Map.of("timestamp", Instant.now(), "error", ex.getReason() == null ? "Request failed" : ex.getReason())); }
-    @ExceptionHandler(IllegalStateException.class)
-    ResponseEntity<Map<String,Object>> state(IllegalStateException ex) { return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("timestamp", Instant.now(), "error", ex.getMessage())); }
+    @ExceptionHandler(PolicyNotActiveException.class)
+    ResponseEntity<Map<String,Object>> inactive(PolicyNotActiveException ex) { return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Map.of("timestamp", Instant.now(), "code", "POLICY_NOT_ACTIVE", "error", ex.getMessage())); }
+    @ExceptionHandler({InvalidClaimStateException.class, IllegalStateException.class})
+    ResponseEntity<Map<String,Object>> state(RuntimeException ex) { return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("timestamp", Instant.now(), "code", "INVALID_CLAIM_STATE", "error", ex.getMessage())); }
 }

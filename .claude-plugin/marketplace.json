@@ -1,0 +1,14 @@
+{
+  "name": "claimflow-local",
+  "description": "Local marketplace for the ClaimFlow engineering harness.",
+  "owner": {
+    "name": "ClaimFlow"
+  },
+  "plugins": [
+    {
+      "name": "claimflow-harness",
+      "source": "./.claude",
+      "description": "Spec-driven TDD and independent evaluation for ClaimFlow."
+    }
+  ]
+}

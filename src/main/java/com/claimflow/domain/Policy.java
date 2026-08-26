@@ -16,6 +16,9 @@ public class Policy {
     @Column(nullable = false) private LocalDate validFrom;
     @Column(nullable = false) private LocalDate validTo;
     @Column(nullable = false) private boolean active;
+    @Column(nullable = false) private int policyVersion;
+    @Column(nullable = false) private int fraudReviewThreshold;
+    @Column(nullable = false) private int fraudRejectThreshold;
 
     public Policy() {}
     public String getPolicyNumber() { return policyNumber; }
@@ -27,5 +30,8 @@ public class Policy {
     public LocalDate getValidFrom() { return validFrom; }
     public LocalDate getValidTo() { return validTo; }
     public boolean isActive() { return active; }
+    public int getPolicyVersion() { return policyVersion; }
+    public int getFraudReviewThreshold() { return fraudReviewThreshold; }
+    public int getFraudRejectThreshold() { return fraudRejectThreshold; }
     public boolean covers(LocalDate date) { return active && !date.isBefore(validFrom) && !date.isAfter(validTo); }
 }

@@ -1,0 +1,9 @@
+{
+  "foundation": "Claude Harness Engine V5",
+  "repository": "https://github.com/cwijayasundara/claude_harness_eng_v5",
+  "commit": "40b4ae9ac47c398d28e5aeb5e7151ee56739de35",
+  "snapshotDate": "2026-07-10",
+  "profile": "core",
+  "integration": "Scaffold generated in isolation; foundation files merged with ClaimFlow-specific substrate.",
+  "sourceOfTruth": "AI Native Engineer Capstone - BC-005 ClaimFlow.pdf"
+}

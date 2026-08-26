@@ -1,0 +1,62 @@
+{
+  "env": {
+    "CLAIMFLOW_HARNESS": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_AUTO_CONTINUE": "1"
+  },
+  "enabledPlugins": {
+    "playwright@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Read", "Glob", "Grep", "Bash(node .claude/scripts/*)", "Bash(npm --prefix .claude *)",
+      "Bash(npm --prefix frontend test*)", "Bash(npm --prefix frontend run build*)",
+      "Bash(npx playwright:*)", "Bash(./mvnw verify*)", "Bash(.\\mvnw.cmd verify*)",
+      "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git branch*)"
+    ],
+    "deny": ["Read(./.env)", "Read(./.env.*)", "Read(./**/secrets/**)"]
+  },
+  "hooks": {
+    "SessionStart": [{"hooks": [
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-git-hooks.js\"", "timeout": 5000},
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-check.js\"", "timeout": 15000}
+    ]}],
+    "PreToolUse": [
+      {"matcher": "Task", "hooks": [
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/concurrency-gate.js\"", "timeout": 5000},
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-run.js\"", "timeout": 5000}
+      ]},
+      {"matcher": "Write|Edit|MultiEdit", "hooks": [
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-write-gate.js\"", "timeout": 10000},
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-write-tdd.js\"", "timeout": 10000},
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/payout-invariant-check.js\"", "timeout": 5000},
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pii-redaction-check.js\"", "timeout": 5000},
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/claim-immutability-check.js\"", "timeout": 5000}
+      ]},
+      {"matcher": "Read|Bash", "hooks": [{"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/token-advisor.js\"", "timeout": 5000}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-gate.js\"", "timeout": 10000}]}
+    ],
+    "PostToolUse": [
+      {"matcher": "Edit|Write|MultiEdit", "hooks": [
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify-on-save.js\"", "timeout": 30000},
+        {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-change.js\"", "timeout": 10000}
+      ]},
+      {"matcher": "Task|Write|Edit|MultiEdit|Bash", "hooks": [{"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-run.js\"", "timeout": 5000}]}
+    ],
+    "UserPromptSubmit": [{"hooks": [
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/artifact-guard.js\"", "timeout": 5000},
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-run.js\"", "timeout": 5000}
+    ]}],
+    "Stop": [{"hooks": [
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/review-on-stop.js\"", "timeout": 5000},
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/completion-gate.js\"", "timeout": 30000},
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/graph-refresh.js\"", "timeout": 30000},
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-run.js\"", "timeout": 5000}
+    ]}],
+    "SubagentStop": [{"hooks": [
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/concurrency-gate.js\"", "timeout": 5000},
+      {"type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/graph-refresh.js\"", "timeout": 30000}
+    ]}]
+  }
+}

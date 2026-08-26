@@ -1,0 +1,13 @@
+.git
+.github
+.artifacts
+.m2-repository
+target
+frontend
+Claude_harness_v5
+.env
+.env.*
+*.docx
+*.log
+AGENTS.md
+README.md
