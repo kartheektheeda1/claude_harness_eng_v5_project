@@ -1,0 +1,13 @@
+{
+  "contractVersion": 1,
+  "sprint": "02-screening-assessment-settlement",
+  "source": "specs/app_spec.md",
+  "acceptanceCriteria": ["AC-04", "AC-05", "AC-06", "AC-07"],
+  "agents": ["fraud-screening-agent", "assessment-settlement-agent", "test-engineer", "claimflow-evaluator"],
+  "requiredChecks": ["backend-unit", "backend-integration", "coverage", "payout-invariant", "harness-contract"],
+  "completion": {
+    "implementation": "verified",
+    "evaluation": "passed:specs/reviews/evaluator-report.json",
+    "pullRequest": "pending"
+  }
+}

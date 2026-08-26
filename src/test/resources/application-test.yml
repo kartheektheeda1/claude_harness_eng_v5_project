@@ -5,6 +5,10 @@ spring:
     password:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
+    properties:
+      hibernate:
+        type:
+          preferred_uuid_jdbc_type: BINARY
   flyway:
-    enabled: false
+    enabled: true

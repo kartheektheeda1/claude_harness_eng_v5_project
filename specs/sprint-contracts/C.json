@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "group": "C",
+  "objective": "Responsive and accessible customer/admin portal validation",
+  "stories": ["E3-S1"],
+  "acceptanceCriteria": [
+    "E3-S1-AC1", "E3-S1-AC2", "E3-S1-AC3",
+    "E3-S1-AC4", "E3-S1-AC5", "E3-S1-AC6"
+  ],
+  "requiredChecks": [
+    "npm --prefix frontend test",
+    "npm --prefix frontend run build",
+    "npm --prefix frontend run e2e",
+    "node .claude/scripts/validate-specs.js"
+  ],
+  "invariants": ["synthetic browser fixtures", "accessible errors and dialogs", "admin actions follow domain state eligibility"]
+}

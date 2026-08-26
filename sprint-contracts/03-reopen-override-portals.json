@@ -1,0 +1,13 @@
+{
+  "contractVersion": 1,
+  "sprint": "03-reopen-override-portals",
+  "source": "specs/app_spec.md",
+  "acceptanceCriteria": ["AC-08", "AC-09", "AC-10"],
+  "agents": ["state-machine-auditor", "assessment-settlement-agent", "ui-designer", "test-engineer", "claimflow-evaluator"],
+  "requiredChecks": ["backend-integration", "frontend-unit", "browser-e2e", "playwright-snapshots", "full-evaluator"],
+  "completion": {
+    "implementation": "verified",
+    "evaluation": "passed:specs/reviews/evaluator-report.json",
+    "pullRequest": "pending"
+  }
+}

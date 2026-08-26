@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "stories": [
+    {
+      "id": "E1-S1",
+      "title": "Submit and automatically adjudicate an eligible claim",
+      "actor": "authenticated policyholder",
+      "priority": "must",
+      "dependencies": [],
+      "acceptance_criteria": [
+        {
+          "id": "E1-S1-AC1",
+          "given": "an authenticated owner has an active matching policy and provides all required synthetic document types",
+          "when": "the owner submits a valid first notice of loss",
+          "then": "the API creates one claim, executes the ordered workflow, records an automatic approval, creates one settlement, and returns HTTP 201"
+        },
+        {
+          "id": "E1-S1-AC2",
+          "given": "an authenticated owner submits against an active matching policy but required document types are missing",
+          "when": "the workflow performs document and fraud checks",
+          "then": "the claim enters MANUAL_REVIEW with no settlement and the missing-document reason is auditable"
+        },
+        {
+          "id": "E1-S1-AC3",
+          "given": "a request contains a future incident date or a non-positive claimed amount",
+          "when": "the claim endpoint validates the request",
+          "then": "the API returns HTTP 400 with field errors and persists no claim"
+        },
+        {
+          "id": "E1-S1-AC4",
+          "given": "a request uses a policy that is inactive, outside its coverage period, or of a different claim type",
+          "when": "the owner submits the claim",
+          "then": "the API rejects the request before workflow execution with a specific 4xx response and persists no claim"
+        }
+      ]
+    },
+    {
+      "id": "E1-S2",
+      "title": "Enforce authentication, ownership, and administrative boundaries",
+      "actor": "customer or claims administrator",
+      "priority": "must",
+      "dependencies": ["E1-S1"],
+      "acceptance_criteria": [
+        {
+          "id": "E1-S2-AC1",
+          "given": "a request has no valid credentials",
+          "when": "it accesses a protected claim resource",
+          "then": "the service returns HTTP 401 without exposing claim data"
+        },
+        {
+          "id": "E1-S2-AC2",
+          "given": "an authenticated customer account",
+          "when": "it calls an endpoint under /api/admin",
+          "then": "the service returns HTTP 403 and performs no administrative operation"
+        },
+        {
+          "id": "E1-S2-AC3",
+          "given": "an authenticated customer requests another customer's claim",
+          "when": "the detail endpoint performs owner authorization",
+          "then": "the service returns HTTP 403 while the owning customer or an administrator remains authorized"
+        },
+        {
+          "id": "E1-S2-AC4",
+          "given": "an authenticated administrator",
+          "when": "the administrator opens the claim queue and dashboard",
+          "then": "the service returns the cross-customer queue and aggregate status counts only through /api/admin"
+        }
+      ]
+    },
+    {
+      "id": "E2-S1",
+      "title": "Apply deterministic fixed-point assessment and fraud rules",
+      "actor": "ClaimFlow rules engine",
+      "priority": "must",
+      "dependencies": ["E1-S1"],
+      "acceptance_criteria": [
+        {
+          "id": "E2-S1-AC1",
+          "given": "a claim amount, policy limit, deductible, and co-pay percentage",
+          "when": "the rules engine assesses payable value",
+          "then": "it caps at the insured sum, subtracts the deductible, applies co-pay, never returns a negative amount, and rounds money to two decimals with HALF_UP"
+        },
+        {
+          "id": "E2-S1-AC2",
+          "given": "the assessed payable amount is zero",
+          "when": "the decision rule executes",
+          "then": "the claim is rejected and no settlement is created"
+        },
+        {
+          "id": "E2-S1-AC3",
+          "given": "manual-review and rejection fraud thresholds are configured as 50 and 80",
+          "when": "scores 49, 50, 79, and 80 are evaluated",
+          "then": "the decisions are respectively AUTO_APPROVE, MANUAL_REVIEW, MANUAL_REVIEW, and REJECT"
+        },
+        {
+          "id": "E2-S1-AC4",
+          "given": "a MOTOR, HEALTH, or LIFE claim",
+          "when": "required document rules are requested",
+          "then": "the engine returns the three claim-type-specific document identifiers defined by the business baseline"
+        }
+      ]
+    },
+    {
+      "id": "E2-S2",
+      "title": "Preserve settlement immutability and append-only audit history",
+      "actor": "policyholder or claims administrator",
+      "priority": "must",
+      "dependencies": ["E2-S1"],
+      "acceptance_criteria": [
+        {
+          "id": "E2-S2-AC1",
+          "given": "an automatically approved claim has no existing settlement",
+          "when": "the workflow settles the claim",
+          "then": "exactly one immutable settlement and a chronological settlement audit event are persisted"
+        },
+        {
+          "id": "E2-S2-AC2",
+          "given": "the owner has a rejected claim and provides a valid reason",
+          "when": "the owner reopens the claim",
+          "then": "the status becomes REOPENED, the reopen count increases, the decision clears, and a new audit event is appended"
+        },
+        {
+          "id": "E2-S2-AC3",
+          "given": "a settled claim is reopened and reprocessed without changing its payable amount",
+          "when": "the workflow reaches settlement again",
+          "then": "the existing immutable settlement is reused and no duplicate settlement row is created"
+        },
+        {
+          "id": "E2-S2-AC4",
+          "given": "an empty test database",
+          "when": "the application context starts with Flyway enabled",
+          "then": "every versioned migration applies successfully and Hibernate validates the resulting schema"
+        }
+      ]
+    },
+    {
+      "id": "E3-S1",
+      "title": "Operate accessible customer and administrator portals",
+      "actor": "customer or claims administrator",
+      "priority": "should",
+      "dependencies": ["E1-S1", "E1-S2", "E2-S2"],
+      "acceptance_criteria": [
+        {
+          "id": "E3-S1-AC1",
+          "given": "the synthetic customer selects the customer workspace",
+          "when": "the owner claim list loads",
+          "then": "the portal shows the customer heading, owner-scoped list or empty state, and sends customer authorization"
+        },
+        {
+          "id": "E3-S1-AC2",
+          "given": "the customer completes the synthetic first-notice form",
+          "when": "the claim API returns an adjudicated claim",
+          "then": "the portal presents the claim number, decision rationale, settlement reference, and audit timeline"
+        },
+        {
+          "id": "E3-S1-AC3",
+          "given": "the customer has multiple claims",
+          "when": "the customer searches by claim number, policy, type, or status",
+          "then": "only matching claim cards remain visible"
+        },
+        {
+          "id": "E3-S1-AC4",
+          "given": "the administrator opens claim details",
+          "when": "the selected claim is settled or reopened",
+          "then": "decision and reprocess actions appear only for domain-eligible states"
+        },
+        {
+          "id": "E3-S1-AC5",
+          "given": "the portal runs at a 390 pixel viewport",
+          "when": "the customer opens and dismisses a modal using Escape",
+          "then": "the dialog closes, focus can return, and the page has no horizontal overflow"
+        },
+        {
+          "id": "E3-S1-AC6",
+          "given": "a claim API request fails",
+          "when": "the portal receives the error response",
+          "then": "an inline accessible alert announces the failure without using a blocking browser alert"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "source": "specs/app_spec.md",
+  "requirements": [
+    { "ac_id": "AC-01", "feature_spec": "specs/intake_spec.md", "required_layers": ["domain", "api", "persistence", "browser"], "checks": [{ "path": "src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java", "command": ".\\mvnw.cmd verify" }, { "path": "frontend/e2e/portal.spec.js", "command": "npm --prefix frontend run e2e" }] },
+    { "ac_id": "AC-02", "feature_spec": "specs/intake_spec.md", "required_layers": ["domain-exception", "api", "transaction"], "checks": [{ "path": "src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java", "command": ".\\mvnw.cmd verify" }] },
+    { "ac_id": "AC-03", "feature_spec": "specs/document-verification_spec.md", "required_layers": ["policy", "assessor-api", "append-only-evidence"], "checks": [{ "path": "src/test/java/com/claimflow/api/DocumentVerificationIntegrationTest.java", "command": ".\\mvnw.cmd verify" }, { "path": "src/test/java/com/claimflow/service/ClaimRulesTest.java", "command": ".\\mvnw.cmd verify" }] },
+    { "ac_id": "AC-04", "feature_spec": "specs/fraud-screening_spec.md", "required_layers": ["policy-version", "unit-boundaries", "append-only-evidence"], "checks": [{ "path": "src/test/java/com/claimflow/service/FraudScreeningPolicyTest.java", "command": ".\\mvnw.cmd verify" }] },
+    { "ac_id": "AC-05", "feature_spec": "specs/assessment_spec.md", "required_layers": ["fixed-point-unit", "property-boundaries"], "checks": [{ "path": "src/test/java/com/claimflow/service/PayoutCalculatorTest.java", "command": ".\\mvnw.cmd verify" }] },
+    { "ac_id": "AC-06", "feature_spec": "specs/assessment_spec.md", "required_layers": ["decision-policy", "policy-version", "reason-code"], "checks": [{ "path": "src/test/java/com/claimflow/service/DecisionPolicyTest.java", "command": ".\\mvnw.cmd verify" }] },
+    { "ac_id": "AC-07", "feature_spec": "specs/settlement_spec.md", "required_layers": ["domain-invariant", "persistence", "architecture"], "checks": [{ "path": "src/test/java/com/claimflow/api/ClaimWorkflowIntegrationTest.java", "command": ".\\mvnw.cmd verify" }, { "path": "src/test/java/com/claimflow/architecture/ArchitectureRulesTest.java", "command": ".\\mvnw.cmd verify" }] },
+    { "ac_id": "AC-08", "feature_spec": "specs/reopen_spec.md", "required_layers": ["domain", "sub-claim-persistence", "owner-api"], "checks": [{ "path": "src/test/java/com/claimflow/api/ReopenWorkflowIntegrationTest.java", "command": ".\\mvnw.cmd verify" }] },
+    { "ac_id": "AC-09", "feature_spec": "specs/settlement_spec.md", "required_layers": ["admin-api", "reason-code", "audit"], "checks": [{ "path": "src/test/java/com/claimflow/api/AdminOverrideIntegrationTest.java", "command": ".\\mvnw.cmd verify" }] },
+    { "ac_id": "AC-10", "feature_spec": "specs/reopen_spec.md", "required_layers": ["state-machine-unit", "transaction-rollback", "architecture"], "checks": [{ "path": "src/test/java/com/claimflow/domain/ClaimStateTest.java", "command": ".\\mvnw.cmd verify" }, { "path": "src/test/java/com/claimflow/architecture/ArchitectureRulesTest.java", "command": ".\\mvnw.cmd verify" }] }
+  ]
+}

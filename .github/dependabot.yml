@@ -1,0 +1,45 @@
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:15"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: npm
+    directory: /Claude_harness_v5/symphony_clone
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:30"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:45"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps

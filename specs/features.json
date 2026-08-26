@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "product": "ClaimFlow",
+  "features": [
+    {
+      "id": "F1",
+      "name": "Claim intake and policy-controlled adjudication",
+      "stories": ["E1-S1", "E1-S2"]
+    },
+    {
+      "id": "F2",
+      "name": "Deterministic assessment, settlement, reopening, and audit",
+      "stories": ["E2-S1", "E2-S2"]
+    },
+    {
+      "id": "F3",
+      "name": "Responsive customer and claims-operations portals",
+      "stories": ["E3-S1"]
+    }
+  ]
+}

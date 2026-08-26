@@ -1,0 +1,365 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-provenance:
+    name: Pull-request provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject future direct commits to main
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent_count="$(git rev-list --parents -n 1 "$GITHUB_SHA" | awk '{print NF - 1}')"
+          if [[ "$parent_count" -lt 2 ]]; then
+            echo "main must advance through an explicit merge commit created from a reviewed pull request."
+            exit 1
+          fi
+
+      - name: Record pull-request evidence
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${{ github.event.pull_request.html_url }}"
+          test "${{ github.event.pull_request.base.ref }}" = "main"
+          printf 'Reviewing PR %s into main\n' "${{ github.event.pull_request.number }}"
+
+  repository-hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce repository policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required_files=(
+            .gitignore
+            .dockerignore
+            .gitattributes
+            .editorconfig
+            pnpm-lock.yaml
+            frontend/package-lock.json
+            Claude_harness_v5/symphony_clone/package-lock.json
+          )
+
+          for required_file in "${required_files[@]}"; do
+            test -f "$required_file" || {
+              echo "Required repository file is missing: $required_file"
+              exit 1
+            }
+          done
+
+          tracked_generated="$({
+            git ls-files |
+              grep -E '(^target/|^frontend/dist/|(^|/)(node_modules|coverage|playwright-report|test-results)(/|$))' |
+              grep -vE '^docs/coverage/'
+          } || true)"
+
+          if [[ -n "$tracked_generated" ]]; then
+            echo "Generated output must not be tracked:"
+            echo "$tracked_generated"
+            exit 1
+          fi
+
+          tracked_environment_files="$({
+            git ls-files |
+              grep -E '(^|/)\.env($|\.)' |
+              grep -vE '(^|/)\.env\.example$'
+          } || true)"
+
+          if [[ -n "$tracked_environment_files" ]]; then
+            echo "Environment files must not be tracked:"
+            echo "$tracked_environment_files"
+            exit 1
+          fi
+
+          git check-ignore --quiet --no-index target/example.class
+          git check-ignore --quiet --no-index frontend/dist/index.html
+          git check-ignore --quiet --no-index frontend/node_modules/example/package.json
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git diff --check "${{ github.event.pull_request.base.sha }}...HEAD"
+          else
+            git show --check --format= HEAD
+          fi
+
+  backend:
+    name: Backend (Java 21)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify backend
+        shell: bash
+        run: |
+          chmod +x mvnw
+          ./mvnw --batch-mode --no-transfer-progress clean verify
+
+      - name: Upload backend test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-and-coverage-reports
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload backend package
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-package
+          path: target/claimflow-*.jar
+          if-no-files-found: error
+          retention-days: 14
+
+  frontend:
+    name: Frontend unit and build (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build production frontend
+        run: npm run build
+
+      - name: Upload frontend build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  browser-e2e:
+    name: Browser E2E (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: npm run e2e -- --reporter=line,html
+
+      - name: Upload browser test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-reports
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  playwright-mcp:
+    name: Playwright MCP evaluator trace (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable pinned pnpm
+        run: corepack enable
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install frontend runtime
+        run: npm ci --prefix frontend --no-audit --no-fund
+
+      - name: Install MCP Chromium
+        run: |
+          pnpm exec playwright install-deps chromium
+          pnpm exec playwright-mcp install-browser chrome-for-testing
+
+      - name: Run MCP navigation and accessibility trace
+        run: pnpm run test:mcp
+
+  claude-harness:
+    name: Claude harness contracts (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run Claude harness contract tests
+        run: npm --prefix .claude test
+
+      - name: Validate Claude harness and specs
+        run: node .claude/scripts/validate-harness.js && node .claude/scripts/validate-specs.js
+
+  claude-code-review:
+    name: Claude Code PR review
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Review acceptance and invariant evidence
+        if: env.ANTHROPIC_API_KEY != ''
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review this pull request against specs/app_spec.md and the verification matrix.
+            Report only evidence-backed findings. Pay special attention to owner scoping,
+            assessor/admin boundaries, BigDecimal money, append-only evidence, state-machine
+            transitions, Flyway-only schema changes, and synthetic-data hygiene.
+
+      - name: Report unavailable Claude review credential
+        if: env.ANTHROPIC_API_KEY == ''
+        run: echo "Claude Code review is configured but skipped because ANTHROPIC_API_KEY is not set."
+
+  symphony:
+    name: Symphony checks (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: Claude_harness_v5/symphony_clone
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: Claude_harness_v5/symphony_clone/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check JavaScript syntax
+        run: npm run check
+
+      - name: Run Symphony tests
+        run: npm test
+
+  containers:
+    name: Container build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs:
+      - pr-provenance
+      - repository-hygiene
+      - backend
+      - frontend
+      - browser-e2e
+      - playwright-mcp
+      - claude-harness
+      - symphony
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Build application images
+        run: docker compose build --pull

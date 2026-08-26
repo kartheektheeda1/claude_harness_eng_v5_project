@@ -15,6 +15,7 @@ public class SecurityConfig {
     @Bean UserDetailsService users(PasswordEncoder encoder) {
         return new InMemoryUserDetailsManager(
             User.withUsername("customer").password(encoder.encode("customer123")).roles("CUSTOMER").build(),
+            User.withUsername("assessor").password(encoder.encode("assessor123")).roles("ASSESSOR").build(),
             User.withUsername("admin").password(encoder.encode("admin123")).roles("ADMIN").build()
         );
     }
@@ -24,6 +25,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/error").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/assessor/**").hasAnyRole("ASSESSOR", "ADMIN")
                 .requestMatchers("/api/claims/**").hasAnyRole("CUSTOMER", "ADMIN")
                 .anyRequest().authenticated())
             .httpBasic(Customizer.withDefaults());

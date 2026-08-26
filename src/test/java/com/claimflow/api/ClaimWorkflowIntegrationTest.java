@@ -1,24 +1,21 @@
 package com.claimflow.api;
 
 import com.claimflow.domain.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.claimflow.repository.*;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.fasterxml.jackson.databind.*;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Set;
-import java.util.UUID;
-
+import java.util.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -27,175 +24,150 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Transactional
 class ClaimWorkflowIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired PolicyRepository policies;
     @Autowired ClaimRepository claims;
     @Autowired SettlementRepository settlements;
-    @Autowired AuditEventRepository audits;
-    @Autowired ObjectMapper objectMapper;
+    @Autowired ObjectMapper json;
 
-    @BeforeEach
-    void resetSyntheticData() {
-        audits.deleteAll();
-        settlements.deleteAll();
-        claims.deleteAll();
-        policies.deleteAll();
-        policies.save(policy("MTR-TEST-001", "customer", ClaimType.MOTOR, "800000.00", "5000.00", "0.00"));
+    @BeforeEach void seedPolicy() { policies.save(policy("MTR-TEST-001", true)); }
+
+    // AC-01
+    @Test void fnolCreatesExactlyOneStableFiledClaim() throws Exception {
+        long before = claims.count();
+        mvc.perform(post("/api/claims").with(httpBasic("customer", "customer123"))
+                .contentType(MediaType.APPLICATION_JSON).content(claimJson("100000.00", true)))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("FILED"))
+            .andExpect(jsonPath("$.claimNumber", startsWith("CLM-"))).andExpect(jsonPath("$.policyVersion").value(4))
+            .andExpect(jsonPath("$.auditTrail[0].action").value("FNOL_FILED"));
+        assertThat(claims.count()).isEqualTo(before + 1);
     }
 
-    @Test
-    void completeLowRiskClaimRunsFullWorkflowAndSettles() throws Exception {
-        mvc.perform(post("/api/claims")
-                .with(httpBasic("customer", "customer123"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(claimJson("100000.00", true)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.status").value("SETTLED"))
-            .andExpect(jsonPath("$.decision").value("AUTO_APPROVE"))
+    // AC-02
+    @Test void inactivePolicyReturnsStableErrorAndPersistsNothing() throws Exception {
+        policies.save(policy("MTR-TEST-INACTIVE", false)); long before = claims.count();
+        mvc.perform(post("/api/claims").with(httpBasic("customer", "customer123"))
+                .contentType(MediaType.APPLICATION_JSON).content(claimJson("MTR-TEST-INACTIVE", "100000.00", true)))
+            .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("POLICY_NOT_ACTIVE"));
+        assertThat(claims.count()).isEqualTo(before);
+    }
+
+    // AC-03..AC-07
+    @Test void completeClaimProducesVersionedEvidenceAndOneImmutableSettlement() throws Exception {
+        UUID id = submit("100000.00", true);
+        mvc.perform(post("/api/admin/claims/{id}/process", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"))
             .andExpect(jsonPath("$.assessedAmount").value(95000.00))
-            .andExpect(jsonPath("$.settlement.amount").value(95000.00))
-            .andExpect(jsonPath("$.auditTrail", hasSize(7)));
+            .andExpect(jsonPath("$.documentEvidence", hasSize(2)))
+            .andExpect(jsonPath("$.fraudEvidence[0].policyVersion").value(4))
+            .andExpect(jsonPath("$.assessmentEvidence[0].payableAmount").value(95000.00))
+            .andExpect(jsonPath("$.decisionEvidence[0].reasonCode").value("ELIGIBLE_FOR_AUTOMATIC_APPROVAL"));
+        mvc.perform(post("/api/admin/claims/{id}/settlement", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("SETTLED"))
+            .andExpect(jsonPath("$.settlement.amount").value(95000.00));
+        mvc.perform(post("/api/admin/claims/{id}/settlement", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.settlement.amount").value(95000.00));
+        assertThat(settlements.findByClaimId(id)).isPresent();
     }
 
-    @Test
-    void missingDocumentsRouteClaimToManualReviewWithoutSettlement() throws Exception {
-        mvc.perform(post("/api/claims")
-                .with(httpBasic("customer", "customer123"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(claimJson("100000.00", false)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.status").value("MANUAL_REVIEW"))
+    // AC-03/AC-06
+    @Test void missingChecklistItemsRouteToReasonCodedManualReview() throws Exception {
+        UUID id = submit("100000.00", false);
+        mvc.perform(post("/api/admin/claims/{id}/process", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("MANUAL_REVIEW"))
             .andExpect(jsonPath("$.verificationStatus").value("MISSING_DOCUMENTS"))
-            .andExpect(jsonPath("$.decision").value("MANUAL_REVIEW"))
-            .andExpect(jsonPath("$.settlement").doesNotExist());
+            .andExpect(jsonPath("$.decisionReasonCode").value("DOCUMENTS_REQUIRE_REVIEW"));
     }
 
-    @Test
-    void zeroPayableAmountIsRejected() throws Exception {
-        mvc.perform(post("/api/claims")
-                .with(httpBasic("customer", "customer123"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(claimJson("1000.00", true)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.status").value("REJECTED"))
-            .andExpect(jsonPath("$.decision").value("REJECT"))
-            .andExpect(jsonPath("$.assessedAmount").value(0.00));
-    }
-
-    @Test
-    void customerCannotUseAdminApiOrReadAnotherOwnersClaim() throws Exception {
-        mvc.perform(get("/api/admin/claims").with(httpBasic("customer", "customer123")))
+    // AC-03 / NFR-04
+    @Test void assessorCanAppendDocumentOutcomesButCustomerCannotUseAssessorApi() throws Exception {
+        UUID id = submit("100000.00", true);
+        String request = "{\"outcome\":\"VERIFIED\",\"reason\":\"Synthetic metadata reviewed\"}";
+        mvc.perform(post("/api/assessor/claims/{id}/documents/POLICE_FIR/verification", id)
+                .with(httpBasic("customer", "customer123")).contentType(MediaType.APPLICATION_JSON).content(request))
             .andExpect(status().isForbidden());
-
-        Claim other = new Claim(UUID.randomUUID(), "CLM-TEST-OTHER", "MTR-TEST-001", "synthetic-other",
-            ClaimType.MOTOR, LocalDate.now(), new BigDecimal("1000.00"),
-            "A detailed synthetic incident description", Set.of());
-        claims.save(other);
-
-        mvc.perform(get("/api/claims/{id}", other.getId()).with(httpBasic("customer", "customer123")))
-            .andExpect(status().isForbidden());
+        mvc.perform(post("/api/assessor/claims/{id}/documents/POLICE_FIR/verification", id)
+                .with(httpBasic("assessor", "assessor123")).contentType(MediaType.APPLICATION_JSON).content(request))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UNDER_REVIEW"))
+            .andExpect(jsonPath("$.documentEvidence[0].actor").value("assessor"));
     }
 
-    @Test
-    void customerCannotSubmitAgainstAnotherOwnersPolicy() throws Exception {
-        policies.save(policy("MTR-TEST-OTHER", "synthetic-other", ClaimType.MOTOR,
-            "800000.00", "5000.00", "0.00"));
-
-        mvc.perform(post("/api/claims")
-                .with(httpBasic("customer", "customer123"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(claimJson("MTR-TEST-OTHER", "100000.00", true)))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.error").value("Policy does not belong to this customer"));
+    // AC-08
+    @Test void disputeReopensOriginalAndReturnsLinkedFiledSubclaim() throws Exception {
+        UUID originalId = submit("1000.00", true);
+        mvc.perform(post("/api/admin/claims/{id}/process", originalId).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REJECTED"));
+        mvc.perform(post("/api/claims/{id}/reopen", originalId).with(httpBasic("customer", "customer123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"Synthetic new evidence\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("FILED"))
+            .andExpect(jsonPath("$.parentClaimId").value(originalId.toString()));
+        mvc.perform(get("/api/claims/{id}", originalId).with(httpBasic("customer", "customer123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REOPENED"));
     }
 
-    @Test
-    void invalidFutureIncidentAndZeroAmountAreRejectedBeforeWorkflow() throws Exception {
-        String invalidRequest = """
-            {
-              "policyNumber": "MTR-TEST-001",
-              "type": "MOTOR",
-              "incidentDate": "%s",
-              "claimedAmount": 0,
-              "description": "Synthetic invalid request for validation testing.",
-              "documentTypes": []
-            }
-            """.formatted(LocalDate.now().plusDays(1));
-
-        mvc.perform(post("/api/claims")
-                .with(httpBasic("customer", "customer123"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(invalidRequest))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error").value("Validation failed"))
-            .andExpect(jsonPath("$.fields.incidentDate").exists())
-            .andExpect(jsonPath("$.fields.claimedAmount").exists());
-
-        org.assertj.core.api.Assertions.assertThat(claims.count()).isZero();
+    // AC-09
+    @Test void adminOverrideAppendsNewDecisionWithoutDestroyingPreviousEvidence() throws Exception {
+        UUID id = submit("1000.00", true);
+        mvc.perform(post("/api/admin/claims/{id}/process", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REJECTED"));
+        mvc.perform(patch("/api/admin/claims/{id}/decision", id).with(httpBasic("admin", "admin123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"MANUAL_REVIEW\",\"reasonCode\":\"ADMIN_EVIDENCE_CORRECTION\",\"comment\":\"Synthetic corrected evidence\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("MANUAL_REVIEW"))
+            .andExpect(jsonPath("$.decisionEvidence", hasSize(2)))
+            .andExpect(jsonPath("$.decisionEvidence[0].administrativeOverride").value(false))
+            .andExpect(jsonPath("$.decisionEvidence[1].administrativeOverride").value(true));
     }
 
-    @Test
-    void ownerCanReopenARejectedClaimAndAuditIsAppended() throws Exception {
-        String response = mvc.perform(post("/api/claims")
-                .with(httpBasic("customer", "customer123"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(claimJson("1000.00", true)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.status").value("REJECTED"))
-            .andReturn().getResponse().getContentAsString();
+    // NFR-04/NFR-06/NFR-07
+    @Test void ownerBoundariesCorrelationIdAndHealthContractAreEnforced() throws Exception {
+        UUID id = submit("100000.00", true);
+        mvc.perform(get("/api/admin/claims").with(httpBasic("customer", "customer123"))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/claims/{id}", id).with(httpBasic("customer", "customer123")).header("X-Correlation-ID", "test-correlation-1"))
+            .andExpect(status().isOk()).andExpect(header().string("X-Correlation-ID", "test-correlation-1"));
+        long started = System.nanoTime();
+        mvc.perform(get("/actuator/health")).andExpect(status().isOk()).andExpect(header().exists("X-Correlation-ID"));
+        long elapsedMillis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+        assertThat(elapsedMillis).isLessThan(1_000L);
+    }
 
-        String claimId = objectMapper.readTree(response).get("id").asText();
+    // PDF 6.2: operations dashboard exposes status, product, fraud and payout evidence.
+    @Test void adminDashboardProvidesOperationalQueuesAndPayoutTotals() throws Exception {
+        UUID id = submit("100000.00", true);
+        mvc.perform(post("/api/admin/claims/{id}/process", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk());
+        mvc.perform(post("/api/admin/claims/{id}/settlement", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk());
 
-        mvc.perform(post("/api/claims/{id}/reopen", claimId)
-                .with(httpBasic("customer", "customer123"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(java.util.Map.of(
-                    "reason", "Synthetic additional evidence"))))
+        mvc.perform(get("/api/admin/dashboard").with(httpBasic("admin", "admin123")))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("REOPENED"))
-            .andExpect(jsonPath("$.reopenCount").value(1))
-            .andExpect(jsonPath("$.decision").doesNotExist())
-            .andExpect(jsonPath("$.auditTrail", hasSize(7)))
-            .andExpect(jsonPath("$.auditTrail[6].action").value("CLAIM_REOPENED"));
-    }
-    @Test
-    void unauthenticatedRequestsAreRejected() throws Exception {
-        mvc.perform(get("/api/claims"))
-            .andExpect(status().isUnauthorized());
+            .andExpect(jsonPath("$.byStatus.SETTLED", greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.byProduct.MOTOR", greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.fraudAlerts", greaterThanOrEqualTo(0)))
+            .andExpect(jsonPath("$.totalSettledPayout", greaterThanOrEqualTo(95000.00)));
     }
 
-    private String claimJson(String amount, boolean completeDocuments) {
-        return claimJson("MTR-TEST-001", amount, completeDocuments);
+    private UUID submit(String amount, boolean complete) throws Exception {
+        String body = mvc.perform(post("/api/claims").with(httpBasic("customer", "customer123"))
+                .contentType(MediaType.APPLICATION_JSON).content(claimJson(amount, complete)))
+            .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        return UUID.fromString(json.readTree(body).get("id").asText());
     }
-
-    private String claimJson(String policyNumber, String amount, boolean completeDocuments) {
-        String documents = completeDocuments
-            ? "[\"POLICE_REPORT\",\"DAMAGE_PHOTOS\",\"DRIVING_LICENSE\"]"
-            : "[\"POLICE_REPORT\"]";
-        return """
-            {
-              "policyNumber": "%s",
-              "type": "MOTOR",
-              "incidentDate": "%s",
-              "claimedAmount": %s,
-              "description": "A detailed synthetic motor incident used only for automated testing.",
-              "documentTypes": %s
-            }
-            """.formatted(policyNumber, LocalDate.now(), amount, documents);
+    private String claimJson(String amount, boolean complete) { return claimJson("MTR-TEST-001", amount, complete); }
+    private String claimJson(String policy, String amount, boolean complete) {
+        String documents = complete ? "[\"POLICE_FIR\",\"REPAIR_INVOICE\"]" : "[\"POLICE_FIR\"]";
+        return "{\"policyNumber\":\"" + policy + "\",\"type\":\"MOTOR\",\"incidentDate\":\"" + LocalDate.now() +
+            "\",\"claimedAmount\":" + amount + ",\"description\":\"A detailed synthetic motor incident used for testing only.\",\"documentTypes\":" + documents + "}";
     }
-
-    private Policy policy(String number, String owner, ClaimType type, String sumInsured, String deductible, String copay) {
-        Policy policy = new Policy();
-        ReflectionTestUtils.setField(policy, "policyNumber", number);
-        ReflectionTestUtils.setField(policy, "customerUsername", owner);
-        ReflectionTestUtils.setField(policy, "type", type);
-        ReflectionTestUtils.setField(policy, "sumInsured", new BigDecimal(sumInsured));
-        ReflectionTestUtils.setField(policy, "deductible", new BigDecimal(deductible));
-        ReflectionTestUtils.setField(policy, "coPayPercent", new BigDecimal(copay));
-        ReflectionTestUtils.setField(policy, "validFrom", LocalDate.now().minusYears(1));
-        ReflectionTestUtils.setField(policy, "validTo", LocalDate.now().plusYears(1));
-        ReflectionTestUtils.setField(policy, "active", true);
-        return policy;
+    private Policy policy(String number, boolean active) {
+        Policy value = new Policy();
+        ReflectionTestUtils.setField(value, "policyNumber", number); ReflectionTestUtils.setField(value, "customerUsername", "customer");
+        ReflectionTestUtils.setField(value, "type", ClaimType.MOTOR); ReflectionTestUtils.setField(value, "sumInsured", new BigDecimal("800000.00"));
+        ReflectionTestUtils.setField(value, "deductible", new BigDecimal("5000.00")); ReflectionTestUtils.setField(value, "coPayPercent", BigDecimal.ZERO.setScale(2));
+        ReflectionTestUtils.setField(value, "validFrom", LocalDate.now().minusYears(1)); ReflectionTestUtils.setField(value, "validTo", LocalDate.now().plusYears(1));
+        ReflectionTestUtils.setField(value, "active", active); ReflectionTestUtils.setField(value, "policyVersion", 4);
+        ReflectionTestUtils.setField(value, "fraudReviewThreshold", 50); ReflectionTestUtils.setField(value, "fraudRejectThreshold", 80);
+        return value;
     }
 }

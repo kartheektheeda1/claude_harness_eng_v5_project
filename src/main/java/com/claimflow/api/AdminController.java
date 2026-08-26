@@ -14,5 +14,6 @@ public class AdminController {
     @GetMapping("/claims") public List<ClaimResponse> claims() { return service.all(); }
     @GetMapping("/dashboard") public DashboardResponse dashboard() { return service.dashboard(); }
     @PostMapping("/claims/{id}/process") public ClaimResponse process(@PathVariable UUID id, Authentication auth) { return service.process(id, auth.getName()); }
+    @PostMapping("/claims/{id}/settlement") public ClaimResponse settle(@PathVariable UUID id, Authentication auth) { return service.settle(id, auth.getName()); }
     @PatchMapping("/claims/{id}/decision") public ClaimResponse override(@PathVariable UUID id, @Valid @RequestBody OverrideRequest request, Authentication auth) { return service.override(id, request, auth.getName()); }
 }

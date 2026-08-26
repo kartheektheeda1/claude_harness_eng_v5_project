@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.79",
+        "--headless",
+        "--browser",
+        "chromium"
+      ]
+    },
+    "claimflow_context": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/claimflow-context-server.js"
+      ]
+    }
+  }
+}
