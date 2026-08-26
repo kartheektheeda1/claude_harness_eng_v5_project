@@ -132,6 +132,22 @@ class ClaimWorkflowIntegrationTest {
         assertThat(elapsedMillis).isLessThan(1_000L);
     }
 
+    // PDF 6.2: operations dashboard exposes status, product, fraud and payout evidence.
+    @Test void adminDashboardProvidesOperationalQueuesAndPayoutTotals() throws Exception {
+        UUID id = submit("100000.00", true);
+        mvc.perform(post("/api/admin/claims/{id}/process", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk());
+        mvc.perform(post("/api/admin/claims/{id}/settlement", id).with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk());
+
+        mvc.perform(get("/api/admin/dashboard").with(httpBasic("admin", "admin123")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.byStatus.SETTLED", greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.byProduct.MOTOR", greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$.fraudAlerts", greaterThanOrEqualTo(0)))
+            .andExpect(jsonPath("$.totalSettledPayout", greaterThanOrEqualTo(95000.00)));
+    }
+
     private UUID submit(String amount, boolean complete) throws Exception {
         String body = mvc.perform(post("/api/claims").with(httpBasic("customer", "customer123"))
                 .contentType(MediaType.APPLICATION_JSON).content(claimJson(amount, complete)))

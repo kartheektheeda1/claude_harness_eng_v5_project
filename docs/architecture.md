@@ -62,3 +62,7 @@ The claim aggregate is the current-state projection. Filing, document verificati
 ## Security and Observability
 
 Controller routes separate customer, assessor, and administrator responsibilities. Customers are additionally owner-scoped in the service layer. Request correlation IDs are generated or validated at the HTTP boundary, returned in `X-Correlation-ID`, and placed in structured logging context. Request bodies, narratives, credentials, and document content are never logged.
+
+## Operations Projections
+
+The administrator dashboard derives status and product counts from the claim projection, identifies deterministic fraud alerts, and totals immutable settlements. The UI exposes separate claim, fraud-alert, and payout-audit queues without duplicating or mutating the underlying evidence. Flyway V5 supplies one synthetic claim per product so the single-command demonstration opens with representative data.

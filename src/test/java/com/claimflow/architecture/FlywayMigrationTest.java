@@ -19,7 +19,7 @@ class FlywayMigrationTest {
     @Test
     @DisplayName("NFR-05: Flyway builds the complete append-only evidence schema")
     void acE2S2Ac4AppliesEverySchemaMigrationFromAnEmptyDatabase() {
-        assertThat(flyway.info().applied()).hasSize(4);
+        assertThat(flyway.info().applied()).hasSize(5);
         assertThat(tableExists("CLAIMS")).isEqualTo(1);
         assertThat(tableExists("AUDIT_EVENTS")).isEqualTo(1);
         assertThat(tableExists("SETTLEMENTS")).isEqualTo(1);
@@ -28,6 +28,9 @@ class FlywayMigrationTest {
         assertThat(tableExists("ASSESSMENT_RECORDS")).isEqualTo(1);
         assertThat(tableExists("DECISION_RECORDS")).isEqualTo(1);
         assertThat(tableExists("CLAIM_TRANSITION_RECORDS")).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from claims where claim_number like 'CLM-2026-DEMO-%'", Integer.class))
+            .isEqualTo(3);
+        assertThat(jdbc.queryForObject("select count(*) from claim_documents", Integer.class)).isGreaterThanOrEqualTo(5);
     }
 
     private Integer tableExists(String tableName) {

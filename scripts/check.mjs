@@ -7,6 +7,15 @@ const includeE2e = process.argv.includes('--e2e');
 const windows = process.platform === 'win32';
 const npm = windows ? 'npm.cmd' : 'npm';
 const maven = windows ? 'mvnw.cmd' : './mvnw';
+const nodeMajor = Number.parseInt(process.versions.node.split('.')[0], 10);
+
+if (nodeMajor !== 22) {
+  console.error(
+    `ClaimFlow verification requires Node.js 22.x; current runtime is ${process.version}. ` +
+    'Run "nvm use 22" and retry the same command.'
+  );
+  process.exit(1);
+}
 
 const checks = [
   ['Claude harness layout', process.execPath, ['.claude/scripts/validate-harness.js']],
@@ -38,7 +47,7 @@ for (const [name, command, args] of checks) {
   const result = spawnSync(command, args, {
     cwd: process.cwd(),
     stdio: 'inherit',
-    shell: windows,
+    shell: windows && /\.(?:cmd|bat)$/i.test(command),
   });
 
   if (result.error) {

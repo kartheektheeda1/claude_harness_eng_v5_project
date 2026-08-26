@@ -8,6 +8,8 @@
 **/.npm-cache/
 /frontend/dist/
 **/coverage/
+!/docs/coverage/
+!/docs/coverage/**
 **/playwright-report/
 **/test-results/
 

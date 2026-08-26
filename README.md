@@ -15,6 +15,7 @@ All bundled identities, policies, claims, documents, screenshots, and test data 
 - Explicit, idempotent, positive, and immutable settlement creation
 - Reopen-as-linked-sub-claim without overwriting the original claim
 - Audited administrator overrides that preserve the previous decision
+- Administrator product/status filters, fraud-alert queue, and payout audit trail
 - Customer, assessor, and administrator authorization boundaries
 - Correlation IDs, structured console logging, Flyway migrations, health endpoint, and architecture rules
 - Claude Harness V5 foundation locked to its July 10, 2026 commit, with project agents, skills, commands, hooks, MCP servers, Agent SDK runner, sprint contracts, and evaluator
@@ -86,6 +87,14 @@ Press `Ctrl+C` to stop both processes. Docker is not required for local testing 
 | `HLT-2026-001` | Health |
 | `LIF-2026-001` | Life |
 
+The demo database also starts with one complete synthetic `FILED` claim for each product:
+
+| Claim | Product |
+|---|---|
+| `CLM-2026-DEMO-MOTOR` | Motor |
+| `CLM-2026-DEMO-HEALTH` | Health |
+| `CLM-2026-DEMO-LIFE` | Life |
+
 ## Verification commands
 
 Run the backend, migrations, architecture rules, packaging, and enforced coverage gates:
@@ -125,24 +134,28 @@ npm run check
 Include Playwright in the unified gate:
 
 ```powershell
+nvm use 22
 npm run check:all
+# or: pnpm run check:all
 ```
+
+The unified gate intentionally stops immediately with a clear message on any Node.js major other than 22, preventing the Windows Playwright startup stall caused by Node 24.
 
 ### Verified baseline
 
 | Gate | Result |
 |---|---:|
-| Backend JUnit/MockMvc/ArchUnit/Flyway | 41/41 passed |
-| JaCoCo instruction coverage | 85.91% |
-| JaCoCo line coverage | 87.26% |
-| JaCoCo branch coverage | 67.72% |
+| Backend JUnit/MockMvc/ArchUnit/Flyway | 45/45 passed |
+| JaCoCo instruction coverage | 88.72% |
+| JaCoCo line coverage | 88.63% |
+| JaCoCo branch coverage | 70.07% |
 | Frontend Vitest | 2/2 passed |
-| Playwright acceptance and snapshots | 8/8 passed |
+| Playwright acceptance and snapshots | 9/9 passed |
 | ClaimFlow harness contracts | 10/10 passed |
 | Harness orchestrator | 133/133 passed |
 | Frontend production build | Passed |
 
-The committed coverage summary is at [docs/coverage/backend-summary.md](docs/coverage/backend-summary.md). CI publishes the detailed JaCoCo, Surefire, and Playwright reports as build artifacts.
+The committed coverage evidence includes [the human-readable summary](docs/coverage/backend-summary.md), [JaCoCo XML](docs/coverage/jacoco.xml), and [JaCoCo CSV](docs/coverage/jacoco.csv). CI also publishes Surefire and Playwright reports as build artifacts.
 
 ## API overview
 
@@ -156,7 +169,7 @@ The committed coverage summary is at [docs/coverage/backend-summary.md](docs/cov
 | `POST` | `/api/assessor/claims/{id}/documents/{type}/verification` | Assessor/Admin | Append a verified/rejected document outcome |
 | `POST` | `/api/assessor/claims/{id}/evaluate` | Assessor/Admin | Run deterministic evidence, assessment, and decision policies |
 | `GET` | `/api/admin/claims` | Admin | Read all claims |
-| `GET` | `/api/admin/dashboard` | Admin | Read workflow totals |
+| `GET` | `/api/admin/dashboard` | Admin | Read status/product totals, fraud alerts, and payout totals |
 | `POST` | `/api/admin/claims/{id}/process` | Admin | Evaluate an eligible filed/under-review claim |
 | `PATCH` | `/api/admin/claims/{id}/decision` | Admin | Append a reason-coded decision override |
 | `POST` | `/api/admin/claims/{id}/settlement` | Admin | Create or return the unique settlement |

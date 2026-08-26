@@ -27,6 +27,6 @@ The failures were environment/runner failures rather than acceptance-test failur
 
 - ClaimFlow harness contracts: 10/10 passed on Node 22.
 - Backend JUnit/MockMvc/ArchUnit/Flyway: 41/41 passed.
-- Full independent evaluator: 8/8 checks passed.
+- Full independent evaluator: 9/9 checks passed, including browser acceptance.
 
 The generated evaluator report is `specs/reviews/evaluator-report.json`; it contains executed commands, exit codes, and captured output instead of a manually asserted result.

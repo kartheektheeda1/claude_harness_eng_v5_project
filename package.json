@@ -4,8 +4,9 @@
   "private": true,
   "description": "Unified verification entry point for the ClaimFlow application and its Claude engineering harness.",
   "type": "module",
+  "packageManager": "pnpm@11.5.1",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.246"

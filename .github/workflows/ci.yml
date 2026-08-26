@@ -38,6 +38,7 @@ jobs:
             .dockerignore
             .gitattributes
             .editorconfig
+            pnpm-lock.yaml
             frontend/package-lock.json
             Claude_harness_v5/symphony_clone/package-lock.json
           )
@@ -51,7 +52,8 @@ jobs:
 
           tracked_generated="$({
             git ls-files |
-              grep -E '(^target/|^frontend/dist/|(^|/)(node_modules|coverage|playwright-report|test-results)(/|$))'
+              grep -E '(^target/|^frontend/dist/|(^|/)(node_modules|coverage|playwright-report|test-results)(/|$))' |
+              grep -vE '^docs/coverage/'
           } || true)"
 
           if [[ -n "$tracked_generated" ]]; then

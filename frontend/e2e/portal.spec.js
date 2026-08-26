@@ -97,7 +97,7 @@ test('E3-S1-AC3 filters claims by claim number, policy, type, or status', async 
 test('E3-S1-AC4 limits admin actions to claims in eligible workflow states', async ({ page }) => {
   let processCalled = false;
   await page.route('**/api/admin/claims', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([settledClaim, reopenedClaim]) }));
-  await page.route('**/api/admin/dashboard', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ totalClaims: 2, openReviews: 0, settledClaims: 1 }) }));
+  await page.route('**/api/admin/dashboard', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ totalClaims: 2, byStatus: { FILED: 1, SETTLED: 1 }, byProduct: { MOTOR: 2, HEALTH: 0, LIFE: 0 }, openReviews: 0, fraudAlerts: 0, settledClaims: 1, totalSettledPayout: 95000 }) }));
   await page.route(`**/api/admin/claims/${reopenedClaim.id}/process`, (route) => {
     processCalled = true;
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(settledClaim) });
@@ -111,6 +111,27 @@ test('E3-S1-AC4 limits admin actions to claims in eligible workflow states', asy
   await page.getByText(reopenedClaim.claimNumber).click();
   await page.getByRole('button', { name: 'Reprocess' }).click();
   await expect.poll(() => processCalled).toBe(true);
+});
+
+test('E3-S1-AC7 filters operations by product and exposes fraud and payout audit queues', async ({ page }) => {
+  const healthReview = {
+    ...reopenedClaim,
+    id: '00000000-0000-0000-0000-000000000103',
+    claimNumber: 'CLM-2026-HEALTH01',
+    policyNumber: 'HLT-2026-001',
+    type: 'HEALTH',
+    status: 'MANUAL_REVIEW',
+    fraudScore: 65,
+  };
+  await page.route('**/api/admin/claims', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([settledClaim, healthReview]) }));
+  await page.route('**/api/admin/dashboard', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ totalClaims: 2, byStatus: { MANUAL_REVIEW: 1, SETTLED: 1 }, byProduct: { MOTOR: 1, HEALTH: 1, LIFE: 0 }, openReviews: 1, fraudAlerts: 1, settledClaims: 1, totalSettledPayout: 95000 }) }));
+  await page.goto('/');
+  await page.getByRole('button', { name: /open admin console/i }).click();
+  await expect(page.getByRole('region', { name: 'Fraud alert queue' })).toContainText(healthReview.claimNumber);
+  await expect(page.getByRole('region', { name: 'Payout audit trail' })).toContainText('PAY-SYNTHETIC01');
+  await page.getByLabel('Filter by product').selectOption('HEALTH');
+  await expect(page.locator('.list')).toContainText(healthReview.claimNumber);
+  await expect(page.locator('.list')).not.toContainText(settledClaim.claimNumber);
 });
 
 test('E3-S1-AC5 keeps the mobile portal usable and closes dialogs with Escape', async ({ page }) => {

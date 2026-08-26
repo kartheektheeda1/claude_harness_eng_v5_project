@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -182,8 +183,26 @@ public class ClaimService {
         return claims.findByStatusInOrderByCreatedAtAsc(List.of(ClaimStatus.FILED, ClaimStatus.UNDER_REVIEW, ClaimStatus.MANUAL_REVIEW)).stream().map(this::response).toList();
     }
     @Transactional(readOnly = true) public DashboardResponse dashboard() {
-        Map<String,Long> map = new LinkedHashMap<>(); for (ClaimStatus s : ClaimStatus.values()) map.put(s.name(), claims.countByStatus(s));
-        return new DashboardResponse(claims.count(), map, claims.countByStatus(ClaimStatus.MANUAL_REVIEW), claims.countByStatus(ClaimStatus.SETTLED));
+        List<Claim> allClaims = claims.findAll();
+        Map<String,Long> byStatus = new LinkedHashMap<>();
+        for (ClaimStatus status : ClaimStatus.values()) {
+            byStatus.put(status.name(), allClaims.stream().filter(claim -> claim.getStatus() == status).count());
+        }
+        Map<String,Long> byProduct = new LinkedHashMap<>();
+        for (ClaimType type : ClaimType.values()) {
+            byProduct.put(type.name(), allClaims.stream().filter(claim -> claim.getType() == type).count());
+        }
+        long fraudAlerts = allClaims.stream()
+            .filter(claim -> claim.getFraudScore() >= 50 || claim.getStatus() == ClaimStatus.MANUAL_REVIEW)
+            .count();
+        BigDecimal totalSettledPayout = settlements.findAll().stream()
+            .map(Settlement::getAmount)
+            .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
+        return new DashboardResponse(
+            allClaims.size(), byStatus, byProduct,
+            byStatus.get(ClaimStatus.MANUAL_REVIEW.name()), fraudAlerts,
+            byStatus.get(ClaimStatus.SETTLED.name()), totalSettledPayout
+        );
     }
 
     private String decisionComment(DecisionPolicy.DecisionResult result, Set<String> missing) {
