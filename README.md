@@ -139,20 +139,28 @@ npm run check:all
 # or: pnpm run check:all
 ```
 
-The unified gate intentionally stops immediately with a clear message on any Node.js major other than 22, preventing the Windows Playwright startup stall caused by Node 24.
+The browser-inclusive gate runs both the nine Playwright journeys and a real Playwright MCP navigation/accessibility snapshot. The unified gate intentionally stops immediately with a clear message on any Node.js major other than 22, preventing the Windows Playwright startup stall caused by Node 24.
+
+Run only the MCP evaluator trace with:
+
+```powershell
+pnpm run test:mcp
+```
 
 ### Verified baseline
 
 | Gate | Result |
 |---|---:|
-| Backend JUnit/MockMvc/ArchUnit/Flyway | 45/45 passed |
+| Backend JUnit/MockMvc/ArchUnit/Flyway | 46/46 passed |
 | JaCoCo instruction coverage | 88.72% |
 | JaCoCo line coverage | 88.63% |
 | JaCoCo branch coverage | 70.07% |
 | Frontend Vitest | 2/2 passed |
 | Playwright acceptance and snapshots | 9/9 passed |
+| Playwright MCP navigation/accessibility trace | Passed |
 | ClaimFlow harness contracts | 10/10 passed |
 | Harness orchestrator | 133/133 passed |
+| Independent browser evaluator | 10/10 checks passed |
 | Frontend production build | Passed |
 
 The committed coverage evidence includes [the human-readable summary](docs/coverage/backend-summary.md), [JaCoCo XML](docs/coverage/jacoco.xml), and [JaCoCo CSV](docs/coverage/jacoco.csv). CI also publishes Surefire and Playwright reports as build artifacts.
@@ -177,7 +185,7 @@ The committed coverage evidence includes [the human-readable summary](docs/cover
 
 ## Claude Harness and Agent SDK
 
-The project substrate is under `.claude/`. `harness-lock.json` records the exact July 10 V5 foundation commit. The project includes specialized ClaimFlow agents, four domain skills, commands, domain-specific safety hooks, two MCP servers, sprint contracts, evaluator output support, and an official Claude Agent SDK dependency.
+The project substrate is under `.claude/`. `harness-lock.json` records the exact July 10 V5 foundation commit. The project includes specialized ClaimFlow agents, four domain skills, commands, domain-specific safety hooks, layered `CLAUDE.md` guidance down to API/domain/service/repository/migration boundaries, two MCP servers, sprint contracts, evaluator output support, and an official Claude Agent SDK dependency. CI runs the Playwright MCP server as an executable evaluation gate and rejects future direct commits to `main`.
 
 Preview an Agent SDK task without making changes:
 

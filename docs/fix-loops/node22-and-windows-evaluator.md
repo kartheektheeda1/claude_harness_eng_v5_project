@@ -19,7 +19,7 @@ The failures were environment/runner failures rather than acceptance-test failur
 ## Corrections
 
 - Replaced the Node 24-only harness option with the portable `node --test` command.
-- Made the evaluator use the Windows shell only for `.cmd`/`.bat` wrappers.
+- Routed Windows `.cmd`/`.bat` wrappers directly through `ComSpec` without a nested shell, preserving paths with spaces while preventing child-process pipe handles from stalling the evaluator.
 - Invoked `mvnw.cmd` from the project working directory so a workspace path containing spaces is safe.
 - Limited JaCoCo output to XML and CSV while retaining enforced line and branch thresholds; the stable coverage summary is committed under `docs/coverage/`.
 
@@ -27,6 +27,6 @@ The failures were environment/runner failures rather than acceptance-test failur
 
 - ClaimFlow harness contracts: 10/10 passed on Node 22.
 - Backend JUnit/MockMvc/ArchUnit/Flyway: 41/41 passed.
-- Full independent evaluator: 9/9 checks passed, including browser acceptance.
+- Full independent evaluator: 10/10 checks passed, including browser acceptance and the Playwright MCP accessibility trace.
 
 The generated evaluator report is `specs/reviews/evaluator-report.json`; it contains executed commands, exit codes, and captured output instead of a manually asserted result.

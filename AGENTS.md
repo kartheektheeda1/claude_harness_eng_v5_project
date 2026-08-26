@@ -6,6 +6,11 @@
 |---|---|
 | Repository rules and workflow | `CLAUDE.md` |
 | Backend generation | `src/CLAUDE.md` |
+| HTTP API generation | `src/main/java/com/claimflow/api/CLAUDE.md` |
+| Domain generation | `src/main/java/com/claimflow/domain/CLAUDE.md` |
+| Application-service generation | `src/main/java/com/claimflow/service/CLAUDE.md` |
+| Repository generation | `src/main/java/com/claimflow/repository/CLAUDE.md` |
+| Flyway migration generation | `src/main/resources/db/migration/CLAUDE.md` |
 | Backend test generation | `src/test/CLAUDE.md` |
 | Frontend generation | `frontend/CLAUDE.md` |
 | Symphony orchestrator | `Claude_harness_v5/symphony_clone/CLAUDE.md` |

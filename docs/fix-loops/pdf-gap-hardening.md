@@ -16,12 +16,18 @@ The new persistence architecture test was run before its predicate was corrected
 - Added administrator product/status filters, fraud alerts, payout audit evidence, and dashboard totals.
 - Made Node 22 a deterministic verification prerequisite so Node 24 fails fast instead of stalling Playwright.
 - Committed stable JaCoCo XML, CSV, and summary evidence.
+- Added binding `CLAUDE.md` guidance at the API, domain, service, repository, and migration boundaries.
+- Converted Playwright MCP from configuration-only evidence into an executable navigation and accessibility-snapshot gate.
+- Added a CI provenance job that rejects future direct commits to `main` and requires an explicit merge commit.
+- Waited for the assessor queue refresh so the browser suite exits without the teardown proxy warning.
 
 ## Green evidence
 
 - Targeted migration and persistence architecture tests: 4/4 passed.
-- Complete backend gate: 45/45 passed.
+- Complete backend gate: 46/46 passed.
 - Frontend unit tests: 2/2 passed.
 - Browser acceptance and snapshot tests: 9/9 passed on Node 22.
+- Playwright MCP navigation and accessibility snapshot: passed.
+- Independent browser evaluator: 10/10 checks passed.
 
 The pull-request reference remains intentionally pending until the feature branch is published and reviewed; this document does not invent repository history.

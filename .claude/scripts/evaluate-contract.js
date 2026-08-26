@@ -36,19 +36,27 @@ function commands(mode) {
     command('Symphony syntax checks', npm, ['run', 'check'], { cwd: path.join(ROOT, 'Claude_harness_v5/symphony_clone') }),
     command('Symphony tests', npm, ['test'], { cwd: path.join(ROOT, 'Claude_harness_v5/symphony_clone') })
   );
-  if (mode === 'browser') list.push(command('Browser acceptance tests', npm, ['run', 'e2e'], { cwd: path.join(ROOT, 'frontend') }));
+  if (mode === 'browser') list.push(
+    command('Browser acceptance tests', npm, ['run', 'e2e'], { cwd: path.join(ROOT, 'frontend') }),
+    command('Playwright MCP accessibility trace', NODE, [path.join(ROOT, 'scripts/playwright-mcp-smoke.mjs')])
+  );
   return list;
 }
 
 function execute(check) {
   const started = Date.now();
-  const result = spawnSync(check.executable, check.args, {
+  const needsWindowsWrapper = IS_WINDOWS && /\.(?:cmd|bat)$/i.test(check.executable);
+  const executable = needsWindowsWrapper ? (process.env.ComSpec || 'cmd.exe') : check.executable;
+  const args = needsWindowsWrapper
+    ? ['/d', '/s', '/c', [check.executable, ...check.args].map(quoteWindowsArgument).join(' ')]
+    : check.args;
+  const result = spawnSync(executable, args, {
     cwd: check.cwd,
     encoding: 'utf8',
     windowsHide: true,
     timeout: 15 * 60 * 1000,
     env: { ...process.env, CI: process.env.CI || '1' },
-    shell: IS_WINDOWS && /\.(?:cmd|bat)$/i.test(check.executable)
+    shell: false
   });
   return {
     name: check.name,
@@ -59,6 +67,11 @@ function execute(check) {
     stdout: String(result.stdout || '').slice(-12000),
     stderr: String(result.stderr || result.error?.message || '').slice(-12000)
   };
+}
+
+function quoteWindowsArgument(value) {
+  const text = String(value);
+  return /[\s&|<>^()]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
 function gitValue(args) {

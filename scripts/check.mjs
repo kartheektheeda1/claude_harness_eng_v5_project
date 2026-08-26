@@ -34,7 +34,10 @@ if (!quick) {
 }
 
 if (includeE2e) {
-  checks.push(['Browser acceptance tests', npm, ['--prefix', 'frontend', 'run', 'e2e']]);
+  checks.push(
+    ['Browser acceptance tests', npm, ['--prefix', 'frontend', 'run', 'e2e']],
+    ['Playwright MCP accessibility trace', process.execPath, ['scripts/playwright-mcp-smoke.mjs']],
+  );
 }
 
 if (!existsSync(windows ? 'mvnw.cmd' : 'mvnw') && !quick) {

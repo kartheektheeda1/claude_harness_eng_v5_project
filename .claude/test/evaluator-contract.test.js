@@ -16,9 +16,11 @@ test('evaluator separates static, full, and browser verification modes', () => {
   assert.ok(fullChecks.includes('Symphony tests'));
   assert.ok(!fullChecks.includes('Browser acceptance tests'));
   assert.ok(browserChecks.includes('Browser acceptance tests'));
+  assert.ok(browserChecks.includes('Playwright MCP accessibility trace'));
 });
 
-test('Windows command wrappers are executed through the system shell', () => {
+test('Windows command wrappers use ComSpec without a nested shell', () => {
   const source = fs.readFileSync(path.join(root, '.claude', 'scripts', 'evaluate-contract.js'), 'utf8');
-  assert.match(source, /shell:\s*IS_WINDOWS/);
+  assert.match(source, /process\.env\.ComSpec/);
+  assert.match(source, /shell:\s*false/);
 });

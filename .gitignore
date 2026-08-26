@@ -12,6 +12,7 @@
 !/docs/coverage/**
 **/playwright-report/
 **/test-results/
+/.playwright-mcp/
 
 # Claude harness runtime state
 **/.symphony/

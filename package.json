@@ -21,7 +21,12 @@
     "test:frontend": "npm --prefix frontend test",
     "build:frontend": "npm --prefix frontend run build",
     "test:e2e": "npm --prefix frontend run e2e",
+    "test:mcp": "node scripts/playwright-mcp-smoke.mjs",
     "agent:claimflow": "node scripts/run-claimflow-agent.mjs",
     "dev": "node scripts/run-demo.mjs"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@playwright/mcp": "0.0.79"
   }
 }

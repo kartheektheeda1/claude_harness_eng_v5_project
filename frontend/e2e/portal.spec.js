@@ -156,7 +156,11 @@ test('E3-S1-AC6 announces API failures without a blocking browser alert', async 
 
 test('AC-03 keeps assessor verification in its own authorized workspace', async ({ page }) => {
   let verificationAuthorization;
-  await page.route('**/api/assessor/queue', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([reopenedClaim]) }));
+  let fulfilledQueueRequests = 0;
+  await page.route('**/api/assessor/queue', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([reopenedClaim]) });
+    fulfilledQueueRequests += 1;
+  });
   await page.route(`**/api/assessor/claims/${reopenedClaim.id}/documents/POLICE_FIR/verification`, (route) => {
     verificationAuthorization = route.request().headers().authorization;
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...reopenedClaim, status: 'UNDER_REVIEW' }) });
@@ -166,6 +170,7 @@ test('AC-03 keeps assessor verification in its own authorized workspace', async 
   await expect(page.getByRole('heading', { name: /evidence review queue/i })).toBeVisible();
   await page.getByText(reopenedClaim.claimNumber).click();
   await page.getByRole('button', { name: 'Verify' }).first().click();
+  await expect.poll(() => fulfilledQueueRequests).toBeGreaterThanOrEqual(2);
   expect(verificationAuthorization).toBe('Basic ' + btoa('assessor:assessor123'));
 });
 

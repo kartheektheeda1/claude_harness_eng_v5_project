@@ -6,6 +6,11 @@ ClaimFlow is a Java 21 / Spring Boot insurance-claim workflow with a React front
 
 - This file governs the repository.
 - `src/CLAUDE.md` adds backend rules.
+- `src/main/java/com/claimflow/api/CLAUDE.md` adds HTTP-boundary rules.
+- `src/main/java/com/claimflow/domain/CLAUDE.md` adds aggregate and invariant rules.
+- `src/main/java/com/claimflow/service/CLAUDE.md` adds application-service rules.
+- `src/main/java/com/claimflow/repository/CLAUDE.md` adds persistence-port rules.
+- `src/main/resources/db/migration/CLAUDE.md` adds database-evolution rules.
 - `src/test/CLAUDE.md` adds backend-test rules.
 - `frontend/CLAUDE.md` adds frontend rules.
 - `Claude_harness_v5/symphony_clone/CLAUDE.md` adds orchestrator rules.
